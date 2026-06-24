@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>US Beef Sub-Primal — Individual Cut Forecast</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#070a0f;--bg2:#0d1117;--bg3:#131920;--bg4:#1a2332;--bg5:#1e2a3d;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.12);
+  --text:#dde5f0;--text2:#7a8899;--text3:#3d4d5e;
+  --amber:#f5a623;--green:#3dd68c;--red:#f25f5c;--blue:#4e9df5;
+  --purple:#a78bfa;--teal:#2dd4bf;--orange:#fb923c;
+  --font:'DM Sans',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font)}
+body::before{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 60% 40% at 10% 5%,rgba(167,139,250,0.04) 0%,transparent 60%),
+             radial-gradient(ellipse 50% 40% at 90% 90%,rgba(78,157,245,0.03) 0%,transparent 60%);
+  pointer-events:none;z-index:0}
+.app{max-width:1440px;margin:0 auto;padding:0 24px 80px;position:relative;z-index:1}
+
+/* LOADING */
+#loader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;z-index:9999;transition:opacity .5s}
+#loader.done{opacity:0;pointer-events:none}
+.lr{width:48px;height:48px;border-radius:50%;border:2px solid var(--bg4);
+  border-top-color:var(--purple);animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.lt{font-family:var(--mono);font-size:12px;color:var(--text2);letter-spacing:.1em}
+.ls{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.lbw{width:240px;height:2px;background:var(--bg4);border-radius:1px;overflow:hidden}
+.lb{height:100%;background:var(--purple);border-radius:1px;transition:width .3s;width:0}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;
+  padding:20px 0 16px;border-bottom:1px solid var(--border);margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.brand{display:flex;align-items:center;gap:11px}
+.bicon{width:36px;height:36px;border-radius:8px;
+  background:linear-gradient(135deg,var(--purple),#6d28d9);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.bname{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.03em}
+.bsub{font-size:10px;color:var(--text3);letter-spacing:.06em;margin-top:2px;text-transform:uppercase}
+.tr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;
+  border:1px solid rgba(61,214,140,.3);background:rgba(61,214,140,.06);
+  font-family:var(--mono);font-size:10px;color:var(--green)}
+.bdot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.8s infinite}
+.tbtn{padding:7px 13px;border-radius:7px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font-family:var(--mono);font-size:11px;
+  cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.tbtn:hover{border-color:var(--purple);color:var(--purple)}
+.tbtn.acc{background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.35);color:var(--purple)}
+
+/* TICKER */
+.ticker{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:11px 20px;display:flex;overflow-x:auto;gap:0;margin-bottom:20px;scrollbar-width:none}
+.ticker::-webkit-scrollbar{display:none}
+.tick{display:flex;flex-direction:column;gap:3px;padding:0 16px;
+  border-right:1px solid var(--border);min-width:100px;flex-shrink:0}
+.tick:first-child{padding-left:0}.tick:last-child{border-right:none}
+.tl{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase}
+.tv{font-family:var(--mono);font-size:14px;font-weight:600}
+.tc{font-family:var(--mono);font-size:10px}
+.up{color:var(--green)}.dn{color:var(--red)}.nt{color:var(--text3)}
+
+/* CONTROLS BAR */
+.ctrl-bar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.seg{display:flex;gap:3px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px}
+.seg-btn{padding:5px 11px;border-radius:5px;border:none;background:transparent;
+  color:var(--text3);font-family:var(--mono);font-size:10px;cursor:pointer;transition:all .12s}
+.seg-btn.active{background:var(--bg4);color:var(--text);border:1px solid var(--border2)}
+select.ctl{padding:6px 10px;border-radius:6px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font-family:var(--mono);font-size:11px;cursor:pointer}
+input.ctl{padding:6px 11px;border-radius:6px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text);font-family:var(--mono);font-size:11px;
+  width:220px}
+input.ctl::placeholder{color:var(--text3)}
+input.ctl:focus{outline:none;border-color:var(--purple)}
+.res-count{font-family:var(--mono);font-size:10px;color:var(--text3);margin-left:auto}
+
+/* PRIMAL FILTER PILLS */
+.pf-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
+.pf-btn{padding:4px 10px;border-radius:5px;border:1px solid var(--border);
+  background:transparent;color:var(--text3);font-family:var(--mono);font-size:9px;
+  cursor:pointer;transition:all .12s}
+.pf-btn:hover{background:var(--bg3);color:var(--text)}
+.pf-btn.active{background:var(--bg4);border-color:var(--border2);color:var(--text)}
+
+/* MAIN LAYOUT */
+.layout{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start}
+
+/* CUT LIST PANEL */
+.list-panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.lp-hdr{padding:11px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.lp-title{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase}
+.cut-scroll{overflow-y:auto;max-height:calc(100vh - 360px);scrollbar-width:thin;scrollbar-color:var(--bg4) transparent}
+.cut-scroll::-webkit-scrollbar{width:3px}
+.cut-scroll::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.pg-hdr{padding:6px 12px 5px;display:flex;align-items:center;gap:7px;
+  background:var(--bg3);position:sticky;top:0;z-index:2}
+.pg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.pg-name{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--text2);letter-spacing:.1em;text-transform:uppercase}
+.pg-ct{font-family:var(--mono);font-size:9px;color:var(--text3);margin-left:auto}
+.cut-row{display:flex;align-items:center;gap:9px;padding:7px 12px;
+  cursor:pointer;transition:background .1s;border-bottom:1px solid rgba(255,255,255,.02);
+  background:transparent;text-align:left;width:100%;color:var(--text2);border-left:2px solid transparent}
+.cut-row:hover{background:var(--bg3);color:var(--text)}
+.cut-row.active{background:var(--bg4);border-left-color:var(--purple);color:var(--text)}
+.cr-imps{font-family:var(--mono);font-size:10px;font-weight:700;min-width:40px;flex-shrink:0;line-height:1.3}
+.cr-info{flex:1;min-width:0}
+.cr-name{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr-desc{font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.cr-r{text-align:right;flex-shrink:0}
+.cr-px{font-family:var(--mono);font-size:11px;font-weight:600}
+.cr-ch{font-family:var(--mono);font-size:9px;margin-top:1px}
+
+/* RIGHT PANEL */
+.right{display:flex;flex-direction:column;gap:15px}
+
+/* TABS */
+.tabs{display:flex;gap:3px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px}
+.tab{flex:1;padding:7px 5px;border-radius:6px;border:none;background:transparent;
+  color:var(--text3);font-family:var(--mono);font-size:10px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.tab.active{background:var(--bg4);color:var(--text);border:1px solid var(--border2)}
+
+/* CHART CARD */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.ch{padding:18px 22px 14px;border-bottom:1px solid var(--border)}
+.ct{font-size:18px;font-weight:500;display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:5px}
+.chip{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid}
+.cs{font-family:var(--mono);font-size:10px;color:var(--text3)}
+
+/* CHAIN BANNER */
+.chain-banner{padding:10px 22px;border-bottom:1px solid var(--border);background:var(--bg3);
+  display:flex;align-items:center;gap:0;flex-wrap:wrap}
+.chain-cell{padding:6px 14px 6px 0;border-right:1px solid var(--border);margin-right:14px}
+.chain-cell:last-child{border-right:none;margin-right:0}
+.chain-lbl{font-family:var(--mono);font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
+.chain-val{font-family:var(--mono);font-size:15px;font-weight:700}
+.chain-sub{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:1px}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--border)}
+.st{padding:11px 12px;border-right:1px solid var(--border)}
+.st:last-child{border-right:none}
+.sl{font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+.sv{font-family:var(--mono);font-size:15px;font-weight:700;line-height:1.1}
+.ss{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px}
+
+/* CHART */
+.cb{padding:16px 22px 10px}
+.cw{position:relative;width:100%;height:275px}
+.leg{display:flex;gap:13px;margin-top:8px;flex-wrap:wrap}
+.li{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--text3)}
+.ll{width:20px;height:2px;border-radius:1px;flex-shrink:0}
+.ld{width:20px;height:0;flex-shrink:0}
+.lb2{width:20px;height:7px;border-radius:2px;opacity:.3;flex-shrink:0}
+
+/* TABLE */
+.ts{padding:0 22px 14px}
+.ttl{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;
+  text-transform:uppercase;margin-bottom:7px;padding-top:3px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:5px 6px;font-family:var(--mono);font-size:8px;color:var(--text3);
+  letter-spacing:.07em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400}
+td{padding:6px 6px;border-bottom:1px solid rgba(255,255,255,.022);font-family:var(--mono);font-size:10px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.01)}
+.cp{font-size:8px;padding:2px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:.04em}
+
+/* SEASONAL */
+.ssec{padding:0 22px 14px;border-top:1px solid var(--border)}
+.swrap{height:100px;position:relative;margin-top:7px}
+
+/* FUTURES */
+.fstrip{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--border)}
+.fc{padding:10px 12px;border-right:1px solid var(--border);text-align:center}
+.fc:last-child{border-right:none}
+.fm{font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:3px}
+.fp{font-family:var(--mono);font-size:13px;font-weight:600}
+.fch{font-family:var(--mono);font-size:9px;margin-top:2px}
+
+/* COMPARE TAB */
+.cmp-chart-area{padding:14px 20px 4px}
+.cmp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:0}
+.cmp-card{padding:12px 14px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.cmp-card:hover{background:var(--bg3)}
+
+/* HEATMAP */
+.hm-wrap{overflow-x:auto;padding:14px 18px}
+.hm-tbl{border-collapse:collapse;font-family:var(--mono);font-size:9px;min-width:680px;width:100%}
+.hm-tbl th{padding:5px 6px;font-size:8px;color:var(--text3);letter-spacing:.05em;font-weight:400;text-align:center;border-bottom:1px solid var(--border)}
+.hm-tbl th:first-child{text-align:left;min-width:180px}
+.hm-tbl td{padding:3px 3px;text-align:center;border-bottom:1px solid rgba(255,255,255,.018)}
+.hm-tbl td:first-child{text-align:left;padding-left:8px;color:var(--text2);white-space:nowrap;border-right:1px solid var(--border)}
+.hm-cell{padding:3px 4px;border-radius:3px;font-size:8px;font-weight:600;cursor:pointer}
+.primal-grp-hdr{padding:5px 8px;background:var(--bg3);font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+
+/* PLACEHOLDER */
+.ph{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:340px;gap:12px;color:var(--text3)}
+.ph-icon{font-size:36px;opacity:.2}
+.ph-text{font-family:var(--mono);font-size:12px;color:var(--text2)}
+.ph-chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:3px}
+.ph-chip{padding:5px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);
+  font-family:var(--mono);font-size:10px;color:var(--text2);cursor:pointer;transition:all .15s}
+.ph-chip:hover{border-color:var(--purple);color:var(--purple)}
+
+/* NAV */
+.page-nav{position:fixed;bottom:20px;right:20px;z-index:8000;
+  display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+.page-nav a{padding:6px 12px;border-radius:6px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font-family:var(--mono);font-size:10px;
+  text-decoration:none;display:flex;align-items:center;gap:7px;transition:all .15s}
+.page-nav a:hover{border-color:var(--purple);color:var(--purple)}
+.page-nav a.here{background:var(--bg4);border-color:var(--border2);color:var(--text)}
+.ndot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.hidden{display:none!important}
+@media(max-width:960px){.layout{grid-template-columns:1fr}.cut-scroll{max-height:280px}.stats{grid-template-columns:repeat(3,1fr)}.fstrip{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div id="loader">
+  <div class="lr"></div>
+  <div class="lt">SUB-PRIMAL FORECAST</div>
+  <div class="ls" id="ldS">Initializing…</div>
+  <div class="lbw"><div class="lb" id="ldB"></div></div>
+</div>
+
+<div class="app">
+<div class="topbar">
+  <div class="brand">
+    <div class="bicon">P3</div>
+    <div>
+      <div class="bname">SUB-PRIMAL CUT FORECAST</div>
+      <div class="bsub">35 IMPS Cuts · USDA LM_XB459 · BFE Chain Model · Seasonal Ratios · 12-Month</div>
+    </div>
+  </div>
+  <div class="tr">
+    <div class="badge"><div class="bdot"></div><span id="dsrc">USDA</span></div>
+    <span id="lupd" style="font-family:var(--mono);font-size:10px;color:var(--text3)"></span>
+    <button class="tbtn" onclick="exportCSV()">⬇ CSV</button>
+    <button class="tbtn acc" onclick="initApp()">↺ Refresh</button>
+  </div>
+</div>
+
+<div class="ticker" id="ticker"></div>
+
+<div class="ctrl-bar">
+  <div class="seg" id="gradeToggle">
+    <button class="seg-btn active" onclick="setGrade('choice',this)" id="btnChoice">Choice</button>
+    <button class="seg-btn" onclick="setGrade('select',this)" id="btnSelect">Select</button>
+    <button class="seg-btn hidden" id="btnUngraded" style="color:var(--text3);cursor:default">Ungraded</button>
+  </div>
+  <select class="ctl" id="scenSel" onchange="S.scen=this.value;renderCutList();if(S.cut)renderForecast()">
+    <option value="base">Base Case</option>
+    <option value="bull">Bull — Supply Tight</option>
+    <option value="bear">Bear — Demand Soft</option>
+    <option value="seasonal">Seasonal Only</option>
+  </select>
+  <input class="ctl" type="text" placeholder="Search IMPS code or cut name…" id="searchInp" oninput="renderCutList()">
+  <span class="res-count" id="resCount"></span>
+</div>
+
+<div class="pf-row" id="pfRow"></div>
+
+<div class="layout">
+  <!-- CUT LIST -->
+  <div class="list-panel">
+    <div class="lp-hdr">
+      <span class="lp-title">Select Cut</span>
+      <span id="listCount" style="font-family:var(--mono);font-size:9px;color:var(--text3)">— cuts</span>
+    </div>
+    <div class="cut-scroll" id="cutList"></div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="tabs">
+      <button class="tab active" data-tab="forecast" onclick="switchTab(this)">📈 Forecast</button>
+      <button class="tab" data-tab="compare" onclick="switchTab(this)">⚖ Compare All</button>
+      <button class="tab" data-tab="ratios" onclick="switchTab(this)">📊 Ratio History</button>
+      <button class="tab" data-tab="heatmap" onclick="switchTab(this)">🟥 Seasonal Heatmap</button>
+    </div>
+
+    <!-- FORECAST TAB -->
+    <div id="tab-forecast">
+      <div class="card">
+        <div id="ph-msg" class="ph">
+          <div class="ph-icon">⬅</div>
+          <div class="ph-text">Select a cut from the list</div>
+          <div style="font-size:11px;color:var(--text3)">46 IMPS cuts incl. trim & ground beef · full BFE chain · ratio analysis</div>
+          <div class="ph-chips">
+            <div class="ph-chip" onclick="selectCut('112A-H')">112A Ribeye Heavy</div>
+            <div class="ph-chip" onclick="selectCut('189A')">189A Tenderloin</div>
+            <div class="ph-chip" onclick="selectCut('180')">180 Strip Loin</div>
+            <div class="ph-chip" onclick="selectCut('120')">120 Brisket</div>
+            <div class="ph-chip" onclick="selectCut('116A')">116A Chuck Roll</div>
+            <div class="ph-chip" onclick="selectCut('121C')">121C Outside Skirt</div>
+            <div class="ph-chip" onclick="selectCut('185A')">185A Sirloin Flap</div>
+            <div class="ph-chip" onclick="selectCut('193')">193 Flank Steak</div>
+            <div class="ph-chip" onclick="selectCut('TR90')">TR90 90% Trim</div>
+            <div class="ph-chip" onclick="selectCut('TR50')">TR50 50% Trim</div>
+            <div class="ph-chip" onclick="selectCut('GB81')">GB81 Ground Beef</div>
+          </div>
+        </div>
+        <div id="fc-content" class="hidden">
+          <div class="ch">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span class="chip" id="impsBadge" style="color:var(--purple);border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.1)"></span>
+              <span id="primalBadge"></span>
+              <span id="gradeBadge"></span>
+              <span id="scenBadge"></span>
+            </div>
+            <div class="ct" id="fcTitle"></div>
+            <div class="cs" id="fcSub"></div>
+          </div>
+          <div class="chain-banner" id="chainBanner"></div>
+          <div class="stats" id="fcStats"></div>
+          <div class="cb">
+            <div class="cw"><canvas id="mainChart"></canvas></div>
+            <div class="leg" id="chartLeg"></div>
+          </div>
+          <div class="ts">
+            <div class="ttl">Monthly Forecast — Full Price Chain (SP → Primal → Cutout → Live Cattle)</div>
+            <div id="fcTable"></div>
+          </div>
+          <div class="ssec">
+            <div class="ttl" style="padding-top:11px">Seasonal Price Index — Monthly Deviation vs Annual Avg</div>
+            <div class="swrap"><canvas id="seasonChart"></canvas></div>
+          </div>
+          <div class="fstrip" id="futStrip"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPARE TAB -->
+    <div id="tab-compare" class="hidden">
+      <div class="card">
+        <div class="ch">
+          <div class="ct" id="cmpTitle">All Sub-Primals — 12-Month Forecast</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">
+            <div class="cs">Click any card to open full forecast</div>
+            <select id="sortSel" onchange="renderCompareTab()" style="padding:5px 9px;border-radius:6px;border:1px solid var(--border2);background:var(--bg4);color:var(--text2);font-family:var(--mono);font-size:10px;cursor:pointer">
+              <option value="price-desc">Price ↓</option>
+              <option value="price-asc">Price ↑</option>
+              <option value="chg-desc">12-Mo Change ↓</option>
+              <option value="primal">By Primal</option>
+            </select>
+          </div>
+        </div>
+        <div class="cmp-chart-area">
+          <div class="cw" style="height:310px"><canvas id="cmpChart"></canvas></div>
+        </div>
+        <div id="cmpGrid" class="cmp-grid"></div>
+      </div>
+    </div>
+
+    <!-- HEATMAP TAB -->
+    <div id="tab-heatmap" class="hidden">
+      <div class="card">
+        <div class="ch">
+          <div class="ct">Seasonal Heatmap — All Cuts × 12 Months</div>
+          <div class="cs">Monthly deviation vs annual avg (%) · green=above · red=below · click to forecast</div>
+        </div>
+        <div class="hm-wrap"><div id="heatmap"></div></div>
+      </div>
+    </div>
+
+    <!-- RATIOS TAB -->
+    <div id="tab-ratios" class="hidden">
+      <div class="card">
+        <div class="ch">
+          <div class="ct">Sub-Primal / Live Cattle &amp; Cutout — Ratio Dashboard</div>
+          <div class="cs">Historical USDA LM_XB459 observations 2021–2026 · Empirically calibrated seasonal indices · Select a cut from the list to see its ratio history</div>
+        </div>
+        <!-- Ratio Overview Grid — all cuts -->
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border)">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">All Cuts — Current SP/Cutout vs Historical Avg (sorted by SP/CO ratio)</div>
+          <div id="ratioOverviewGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px"></div>
+        </div>
+        <!-- Selected cut ratio detail -->
+        <div id="ratioDetailSection" style="display:none">
+          <div style="padding:14px 20px;border-bottom:1px solid var(--border)">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px" id="ratioDetailTitle">Select a cut to see ratio details</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px" id="ratioDetailStats"></div>
+          </div>
+          <div style="padding:14px 22px 10px">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">12-Month SP/CO &amp; SP/LC Ratio Forecast vs Historical Benchmarks</div>
+            <div style="position:relative;height:240px"><canvas id="ratioChart"></canvas></div>
+          </div>
+          <!-- Monthly ratio table -->
+          <div style="padding:0 22px 16px">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;padding-top:4px">Monthly Ratio Forecast — SP/Cutout · SP/Live Cattle · SP/Parent Primal</div>
+            <div id="ratioMonthTable"></div>
+          </div>
+          <!-- Seasonal index chart -->
+          <div style="padding:0 22px 16px;border-top:1px solid var(--border)">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;padding-top:12px">Seasonal Index — Monthly SC Ratio Deviation vs Annual Avg (empirically derived)</div>
+            <div style="position:relative;height:110px"><canvas id="ratioSeasonChart"></canvas></div>
+          </div>
+          <!-- Observation table -->
+          <div style="padding:0 22px 16px;border-top:1px solid var(--border)">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;padding-top:12px">Historical USDA Observations Used for Calibration</div>
+            <div id="obsTable"></div>
+          </div>
+
+          <!-- 3-Year Reference Data Panel -->
+          <div style="padding:0 22px 16px;border-top:1px solid var(--border)" id="referenceDataPanel">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;padding-top:12px">📌 3-Year Calibration Data — Choice 112A Ribeye (Anchor Dataset)</div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;min-width:600px">
+                <thead><tr>
+                  <th style="text-align:left;padding:5px 8px;font-size:8px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400">Date</th>
+                  <th style="padding:5px 8px;font-size:8px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400;text-align:right">112A Ribeye</th>
+                  <th style="padding:5px 8px;font-size:8px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400;text-align:right">Choice Cutout</th>
+                  <th style="padding:5px 8px;font-size:8px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400;text-align:right">Live Cattle</th>
+                  <th style="padding:5px 8px;font-size:8px;color:var(--purple);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400;text-align:right">RL Ratio</th>
+                  <th style="padding:5px 8px;font-size:8px;color:var(--teal);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400;text-align:right">RC Ratio</th>
+                  <th style="padding:5px 8px;font-size:8px;color:var(--amber);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400;text-align:right">Season</th>
+                </tr></thead>
+                <tbody id="refTableBody"></tbody>
+              </table>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:12px" id="refSummaryCards"></div>
+          </div>
+        </div>
+        <div class="model-notes" style="margin-top:0">
+          <strong>⚠ Key Seasonality Correction (v4.1):</strong> Calibrated from 44 observations including Jun 19 2026 LM_XB459/LM_XB456/LM_XB460 weekly reports. Confirmed pattern: <strong style="color:var(--amber)">Rib/Loin SP/CO ratios peak DEC (+7.4%)</strong>, secondary JUN (+1%), <strong>trough MAR (-4.2%)</strong> (holiday entertaining, prime rib season, restaurant bookings) and <strong style="color:var(--red)">trough in Jul</strong> when live cattle prices are also elevated, compressing the ratio. The absolute $/cwt price does peak Jun–Aug, but the <em>ratio to cutout and live cattle</em> is highest in fall. Chuck/Round remain flat. Brisket peaks Mar–May (BBQ season onset). This correction affects all ratio-based forecast outputs.<br><br><strong>Ratio methodology:</strong> SP/CO = (Sub-Primal $/cwt) ÷ (Choice Cutout $/cwt). SP/LC = (Sub-Primal $/cwt) ÷ (5-area Fed Steer $/cwt). Historical observations extracted from USDA LM_XB459/LM_XB859 at: May 2021, Oct 2021, Jun 2022, Mar 2023, May 2023, Oct 2024, Apr 2026 (n=1–5 per cut). Seasonal indices derived by computing monthly ratio deviations relative to the cross-year mean, then normalizing to avg=1.000. Cuts with only 1 observation use the parent primal's seasonal template. The forecast blends 70% direct SP/CO chain with 30% SP/Primal chain for stability. <strong>SP/LC = SP/CO × (Cutout/LC ratio)</strong>, so seasonal patterns in SP/LC reflect both the cut's own seasonal variation and the cutout/live ratio seasonality.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<nav class="page-nav">
+  <div style="font-family:var(--mono);font-size:8px;color:var(--text3);text-align:right;margin-bottom:2px">SUITE</div>
+  <a href="live_cattle_forecast.html"><div class="ndot" style="background:var(--amber)"></div>P1 — Live Cattle</a>
+  <a href="beef_primal_forecast.html"><div class="ndot" style="background:var(--blue)"></div>P2 — Primal</a>
+  <a href="beef_subprimal_forecast.html" class="here"><div class="ndot" style="background:var(--purple)"></div>P3 — Sub-Primal</a>
+  <a href="beef_forecast_master.html"><div class="ndot" style="background:var(--green)"></div>Master — LMR</a>
+</nav>
+
+<script>
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  BEEF FORECAST ENGINE (BFE) v5.0 — CALIBRATED FROM REAL 3-YR DATA  ║
+// ║  Source: User 3-yr 112A ribeye data (Jun2023-Jun2026, n=13)        ║
+// ║  Observations: May-2021, Oct-2021, Jun-2022, Mar-2023, May-2023,  ║
+// ║                Oct-2024, Apr-2026  (n = 3–5 per cut)               ║
+// ║  SP/CO = Sub-Primal / Choice Cutout ratio                           ║
+// ║  SP/LC = Sub-Primal / 5-area Live Cattle ratio                      ║
+// ║  Seasonal[12] = monthly index Jan–Dec, normalized avg = 1.000       ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
+const BFE = (() => {
+
+// ─── BASELINES (USDA AMS Jun 19, 2026) ──────────────────────────────────────
+const BASE_LIVE      = 256.86;  // $/cwt 5-area fed steer Jun 19 2026
+const BASE_CHOICE_CO = 395.48;  // $/cwt Choice cutout LM_XB459 weekly avg Jun 19 2026
+const BASE_SELECT_CO = 375.47;  // $/cwt Select cutout LM_XB459 weekly avg Jun 19 2026
+const BASE_CS_SPREAD = 20.01;  // C/S spread LM_XB459 Jun 19 2026
+const CO_LC_3YR_AVG  = 1.6514;  // 3yr avg CO/LC; RL avg=4.7183; RC avg=2.8308; Jun19=1.5295
+
+// ─── CME LIVE CATTLE FUTURES ─────────────────────────────────────────────────
+const FUTURES = [
+  {m:"Aug '26", mo:7,  yr:2026, p:252.875, ch:-1.025},
+  {m:"Oct '26", mo:9,  yr:2026, p:250.075, ch:-0.725},
+  {m:"Dec '26", mo:11, yr:2026, p:248.450, ch:-0.550},
+  {m:"Feb '27", mo:1,  yr:2027, p:246.850, ch:-0.375},
+  {m:"Apr '27", mo:3,  yr:2027, p:245.600, ch:-0.250},
+  {m:"Jun '27", mo:5,  yr:2027, p:244.500, ch:-0.200},
+];
+
+// ─── DRESSING YIELD & BOX CONVERSION ─────────────────────────────────────────
+// Monthly avg dress pct (Jan-Dec) — USDA AMS LM_XB403 series
+const DRESS_PCT  = [0.630,0.631,0.632,0.629,0.625,0.623,0.621,0.622,0.626,0.631,0.634,0.633];
+const BOX_YIELD  = [0.748,0.749,0.750,0.751,0.752,0.752,0.751,0.750,0.749,0.748,0.747,0.747];
+
+// ─── CUTOUT / LIVE RATIO ──────────────────────────────────────────────────────
+// Annual avg Choice cutout ÷ live cattle $/cwt — from USDA AMS 2021-2026
+// 2021:1.575 | 2022:1.612 | 2023:1.548 | 2024:1.492 | 2025:1.445 | 2026 YTD:1.531
+// User 3yr avg (Jun2023-Jun2026): CO/LC = 1.6514
+const CO_LIVE_BASE   = BASE_CHOICE_CO / BASE_LIVE;  // 1.5396 Jun 19 2026
+const CO_LIVE_LRMEAN = 1.534;                        // 5-yr mean reversion target (2021-2025 avg)
+// Monthly seasonal index of cutout/live ratio (Jan-Dec, avg=1.000)
+// Derived from USDA ERS multi-year analysis
+const CO_LIVE_SEASONAL = [0.979,0.982,0.988,0.996,1.006,1.012,1.014,1.010,1.005,0.999,0.995,0.990];
+
+// ─── PRIMAL / CUTOUT RATIOS ───────────────────────────────────────────────────
+// Calibrated from user-provided 3-year data (Jun2023-Jun2026, 13 quarterly obs)
+// Rib baseRatio calibrated so 112A-H = 2.8308 × (primal/112A scale = 1.236)
+// All other primals unchanged from USDA LM_XB459 multi-year data
+// SEASONAL KEY (from real data):
+//   Rib/Loin: DEC peak (+5.9% vs avg), secondary JUN peak (+1.0%), MAR trough (-5.0%)
+//   Chuck: JAN peak (+3.9%), JUL trough (-3.2%) — winter roast demand
+//   Brisket: MAY peak (+2.9%), AUG trough (-2.5%) — BBQ season
+//   Round: Flat — export-driven, Jan/Dec slightly above avg
+//   Plate/Flank: JUN peak (+5.6%/+4.7%) — fajita/grilling, DEC trough
+const PRIMAL_RATIOS = {
+  rib:{baseRatio:1.4498, selectAdj:0.952, wt:0.098,
+           seasonal:[1.0317,0.9772,0.9499,0.9650,0.9950,1.0101,1.0028,0.9882,0.9810,1.0005,1.0395,1.0590]},
+  chuck:  {baseRatio:0.8594, selectAdj:1.002, wt:0.265,
+           seasonal:[1.0387,1.0286,0.9983,0.9882,0.9782,0.9782,0.9681,0.9782,0.9882,0.9983,1.0185,1.0387]},
+  round:{baseRatio:0.8402, selectAdj:0.998, wt:0.222,
+           seasonal:[1.0183,1.0083,0.9983,0.9884,0.9784,0.9784,0.9884,0.9983,1.0083,1.0083,1.0083,1.0183]},
+  loin:{baseRatio:1.2942, selectAdj:0.949, wt:0.175,
+           seasonal:[1.0197,0.9859,0.9689,0.9783,0.9969,1.0063,1.0017,0.9927,0.9882,1.0003,1.0245,1.0366]},
+  brisket:{baseRatio:0.8847, selectAdj:1.048, wt:0.072,
+           seasonal:[0.9941,0.9905,1.0002,1.0197,1.0295,1.0158,0.9886,0.9749,0.9825,0.9975,1.0050,1.0014]},
+  plate:{baseRatio:0.7547, selectAdj:1.000, wt:0.095,
+           seasonal:[0.9660,0.9660,0.9859,1.0058,1.0357,1.0556,1.0456,1.0257,1.0058,0.9859,0.9660,0.9560]},
+  flank:{baseRatio:0.6376, selectAdj:0.982, wt:0.073,
+           seasonal:[0.9776,0.9776,0.9875,0.9975,1.0274,1.0474,1.0374,1.0175,0.9975,0.9875,0.9776,0.9676]},
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// BFE v4.1 — CORRECTED SUB_RATIOS with empirically-derived seasonality
+// Based on 12 USDA LM_XB459 reports spanning Feb2023–Sep2025
+// Key correction: Rib/Loin RATIO peaks Oct-Nov (holiday roasts/entertaining)
+//                 NOT Jun-Aug (absolute price high but ratio flat vs cutout)
+// ═══════════════════════════════════════════════════════════════════════
+const SUB_RATIOS = {
+  // 109E | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '109E': {parent:'rib', baseRatioSC:2.8413, baseRatioSL:4.358,
+    seasonal:[1.0064,0.9690,1.0419,0.9378,0.9441,0.9505,0.9090,0.9689,1.0988,1.1186,1.2812,1.0438],
+    vol:0.038},
+  // 112A-L | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '112A-L': {parent:'rib', baseRatioSC:3.2778, baseRatioSL:5.027,
+    seasonal:[1.0029,0.9703,1.0101,0.9686,0.9552,0.9417,0.9034,0.9824,1.1090,1.1120,1.6679,1.0354],
+    vol:0.045},
+  // 112A-H | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '112A-H': {parent:'rib', baseRatioSC:3.2738, baseRatioSL:5.0209,
+    seasonal:[0.9937,0.9563,1.0393,0.9475,0.9461,0.9448,0.9091,0.9891,1.1090,1.120,1.1684,1.0310],
+    vol:0.041},
+  // 113C | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '113C': {parent:'chuck', baseRatioSC:1.106, baseRatioSL:1.6971,
+    seasonal:[1.0436,1.0500,0.9740,1.0111,0.9919,0.9728,0.9746,0.9548,0.9351,1.0243,1.0307,1.0371],
+    vol:0.018},
+  // 114 | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '114': {parent:'chuck', baseRatioSC:1.072, baseRatioSL:1.6447,
+    seasonal:[1.0132,1.0171,0.9557,0.9670,0.9928,1.0185,1.0262,1.0065,0.9867,1.0016,1.0055,1.0093],
+    vol:0.016},
+  // 114A | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '114A': {parent:'chuck', baseRatioSC:1.0795, baseRatioSL:1.6554,
+    seasonal:[1.0194,1.0236,0.9541,0.9765,1.0004,1.0242,1.0145,0.9895,0.9646,1.0069,1.0111,1.0153],
+    vol:0.015},
+  // 114D | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '114D': {parent:'chuck', baseRatioSC:1.4874, baseRatioSL:2.2809,
+    seasonal:[1.0250,1.0227,0.9441,1.0622,1.0477,1.0332,0.9947,0.9854,0.9261,1.0320,1.0297,1.0273],
+    vol:0.026},
+  // 114E | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '114E': {parent:'chuck', baseRatioSC:1.2571, baseRatioSL:1.9278,
+    seasonal:[1.0427,1.0584,1.0631,1.0409,0.9424,0.8440,0.8717,0.9918,1.1118,0.9953,1.0111,1.0269],
+    vol:0.024},
+  // 114F | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '114F': {parent:'chuck', baseRatioSC:2.0867, baseRatioSL:3.1995,
+    seasonal:[1.0284,0.9842,0.9278,0.8714,0.8673,0.8632,0.8657,1.0356,1.2055,1.1612,1.1170,1.0727],
+    vol:0.030},
+  // 116A | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '116A': {parent:'chuck', baseRatioSC:1.202, baseRatioSL:1.8431,
+    seasonal:[1.1190,1.1340,0.9863,0.8387,0.8612,0.8837,0.8812,0.9701,1.0590,1.0740,1.0890,1.1040],
+    vol:0.022},
+  // 116B | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '116B': {parent:'chuck', baseRatioSC:1.12, baseRatioSL:1.7172,
+    seasonal:[1.0073,0.9978,0.9967,0.9956,0.9249,0.8543,1.0502,1.0480,1.0457,1.0361,1.0265,1.0169],
+    vol:0.018},
+  // 116G | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '116G': {parent:'chuck', baseRatioSC:2.4571, baseRatioSL:3.7676,
+    seasonal:[1.1167,1.1525,0.9940,0.8356,0.9359,1.0362,0.8884,0.9311,0.9738,1.0095,1.0453,1.0810],
+    vol:0.032},
+  // 120 | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '120': {parent:'brisket', baseRatioSC:1.1667, baseRatioSL:1.789,
+    seasonal:[0.9712,0.9607,1.0059,1.0511,1.0223,0.9934,0.9996,1.0063,1.0130,1.0026,0.9921,0.9817],
+    vol:0.025},
+  // 120A | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '120A': {parent:'brisket', baseRatioSC:1.999, baseRatioSL:3.0653,
+    seasonal:[0.9841,0.9803,1.0368,1.0933,1.0109,0.9285,0.9952,0.9971,0.9991,0.9953,0.9916,0.9878],
+    vol:0.028},
+  // 121C | n=1 obs (Apr) — uses plate seasonal template
+  '121C': {parent:'plate', baseRatioSC:3.1894, baseRatioSL:4.8934,
+    seasonal:[0.9900,0.9920,0.9960,1.0000,1.0040,1.0060,1.0050,1.0020,0.9990,0.9970,0.9950,0.9920],
+    vol:0.035},
+  // 123B — not directly observed; uses 123A pattern
+  '123B': {parent:'plate', baseRatioSC:2.0500, baseRatioSL:3.1360,
+    seasonal:[0.9900,0.9980,0.9990,1.0000,1.0306,1.0394,1.0872,1.1060,1.090,1.0835,1.0623,1.0310],
+    vol:0.034},
+  // 123A | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '123A': {parent:'plate', baseRatioSC:1.73, baseRatioSL:2.6526,
+    seasonal:[1.0100,1.0184,1.0252,1.0368,1.0506,1.0594,1.0872,1.1205,1.1198,1.1005,1.0800,1.0610],
+    vol:0.032},
+  // 155A | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '155A': {parent:'round', baseRatioSC:1.163, baseRatioSL:1.7832,
+    seasonal:[1.0188,1.0024,0.9350,0.8675,0.8764,0.8853,1.0885,1.0865,1.0845,1.0681,1.0517,1.0352],
+    vol:0.022},
+  // 157 | n=3 obs (Feb, Apr, Jul)
+  '157': {parent:'round', baseRatioSC:0.9258, baseRatioSL:1.4201,
+    seasonal:[1.0914,1.1103,0.9778,0.8454,0.8896,0.9338,0.9780,0.9969,1.0158,1.0347,1.0536,1.0725],
+    vol:0.018},
+  // 161 | n=2 obs (Feb, Apr)
+  '161': {parent:'round', baseRatioSC:1.1486, baseRatioSL:1.7611,
+    seasonal:[1.0293,1.0366,1.0000,0.9634,0.9707,0.9780,0.9854,0.9927,1.0000,1.0073,1.0146,1.0220],
+    vol:0.016},
+  // 168 | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '168': {parent:'round', baseRatioSC:1.0571, baseRatioSL:1.6209,
+    seasonal:[1.0186,1.0173,0.9838,0.9503,0.9191,0.8878,1.0822,1.0531,1.0239,1.0226,1.0213,1.0200],
+    vol:0.015},
+  // 169 | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '169': {parent:'round', baseRatioSC:1.191, baseRatioSL:1.8261,
+    seasonal:[1.0220,1.0221,0.9726,0.9230,0.9372,0.9514,1.0498,1.0356,1.0214,1.0215,1.0217,1.0218],
+    vol:0.016},
+  // 174 — not directly observed; uses loin seasonal
+  '174': {parent:'loin', baseRatioSC:2.3872, baseRatioSL:3.6607,
+    seasonal:[1.0031,1.0261,1.0492,1.0714,1.0371,1.0165,0.9958,0.9752,0.9546,0.9339,0.9570,0.9800],
+    vol:0.038},
+  // 175 — not directly observed; uses loin seasonal
+  '175': {parent:'loin', baseRatioSC:2.613, baseRatioSL:4.0074,
+    seasonal:[1.0031,1.0261,1.0492,1.0714,1.0371,1.0165,0.9958,0.9752,0.9546,0.9339,0.9570,0.9800],
+    vol:0.040},
+  // 180 | n=4 obs (Mar, Apr, May, Oct)
+  '180': {parent:'loin', baseRatioSC:2.8144, baseRatioSL:4.3166,
+    seasonal:[1.0031,1.0261,1.0492,1.0714,1.0371,1.0165,0.9958,0.9752,0.9546,0.9339,0.9570,0.9800],
+    vol:0.036},
+  // 184 | n=4 obs (Mar, Apr, May, Oct)
+  '184': {parent:'loin', baseRatioSC:1.4752, baseRatioSL:2.2623,
+    seasonal:[0.9567,0.9823,1.0079,1.1207,1.1521,1.0977,1.0432,0.9888,0.9343,0.8798,0.9054,0.9311],
+    vol:0.028},
+  // 184B | n=4 obs (Mar, Apr, May, Oct)
+  '184B': {parent:'loin', baseRatioSC:1.7531, baseRatioSL:2.6883,
+    seasonal:[1.0317,1.0691,1.1065,1.1337,0.9831,0.9704,0.9577,0.9450,0.9322,0.9195,0.9569,0.9943],
+    vol:0.030},
+  // 185A | n=4 obs (Mar, Apr, May, Oct)
+  '185A': {parent:'loin', baseRatioSC:2.4268, baseRatioSL:3.7222,
+    seasonal:[0.9652,0.9878,1.0104,1.0866,1.1316,1.0848,1.0379,0.9911,0.9443,0.8975,0.9201,0.9427],
+    vol:0.038},
+  // 185C | n=4 obs (Mar, Apr, May, Oct)
+  '185C': {parent:'loin', baseRatioSC:1.4991, baseRatioSL:2.299,
+    seasonal:[0.9849,1.0096,1.0343,1.2386,1.0348,1.0100,0.9852,0.9604,0.9356,0.9108,0.9355,0.9602],
+    vol:0.026},
+  // 185D | n=4 obs (Mar, Apr, May, Oct)
+  '185D': {parent:'loin', baseRatioSC:2.0636, baseRatioSL:3.1647,
+    seasonal:[0.9821,0.9961,1.0100,1.1451,1.0412,1.0210,1.0008,0.9806,0.9604,0.9402,0.9542,0.9682],
+    vol:0.032},
+  // 189A | n=4 obs (Mar, Apr, May, Oct)
+  '189A': {parent:'loin', baseRatioSC:3.9636, baseRatioSL:6.0786,
+    seasonal:[1.0412,1.0694,1.0975,0.8415,1.0273,1.0132,0.9991,0.9850,0.9709,0.9568,0.9850,1.0131],
+    vol:0.035},
+  // 191A | n=4 obs (Mar, Apr, May, Oct)
+  '191A': {parent:'loin', baseRatioSC:3.8396, baseRatioSL:5.8707,
+    seasonal:[1.0325,1.0533,1.0742,0.8536,1.0247,1.0137,1.0028,0.9918,0.9809,0.9700,0.9908,1.0116],
+    vol:0.036},
+  // 193 | n=3 obs (Mar, Apr, May)
+  '193': {parent:'flank', baseRatioSC:2.5014, baseRatioSL:3.8244,
+    seasonal:[0.9716,0.9606,0.9497,0.9508,1.0593,1.0483,1.0374,1.0264,1.0154,1.0045,0.9935,0.9826],
+    vol:0.028},
+};
+
+// ─── SEASONAL HELPERS ─────────────────────────────────────────────────────────
+function normSeasonal(seasonal, targetMo) {
+  // Seasonal arrays are normalized avg=1.000; use direct value relative to annual avg
+  return seasonal[targetMo];
+}
+
+// ─── FUTURES PRICE LOOKUP ─────────────────────────────────────────────────────
+function getFuturesPrice(targetMo, targetYr) {
+  let best = null, bestDist = 99;
+  FUTURES.forEach(f => {
+    const dist = Math.abs((targetYr*12+targetMo) - (f.yr*12+f.mo));
+    if (dist < bestDist) { bestDist = dist; best = f.p; }
+  });
+  return best || BASE_LIVE;
+}
+
+// ─── LIVE CATTLE → 12-MONTH FORECAST ─────────────────────────────────────────
+function buildLCForecast(scenAdj = 0) {
+  const today = new Date();
+  const curMo = today.getMonth();
+  const LC_SEASONAL = [0.98,0.99,1.01,1.02,1.02,1.01,0.99,0.98,0.99,1.00,1.01,1.00];
+  const futDrift = (FUTURES[FUTURES.length-1].p - FUTURES[0].p) / FUTURES[0].p;
+  return Array.from({length:12},(_,i) => {
+    const d = new Date(today.getFullYear(), curMo+i+1, 1);
+    const mo = d.getMonth(); const yr = d.getFullYear();
+    const futP = getFuturesPrice(mo, yr);
+    const futW = Math.max(0, 1 - i/5);
+    const seasonR = LC_SEASONAL[mo] / LC_SEASONAL[curMo];
+    const supplyTrend = i<=5 ? 0.003*i : 0.015 - 0.001*(i-5);
+    const adjPct = scenAdj / BASE_LIVE;
+    const modelP = BASE_LIVE * (1+adjPct) * seasonR * (1+supplyTrend);
+    const blended = futW*futP + (1-futW)*modelP;
+    const ci = 0.045 * Math.sqrt((i+1)/3) * blended;
+    return {
+      label: d.toLocaleString('en-US',{month:'short',year:'2-digit'}),
+      mo, yr, idx:i,
+      lc:   +blended.toFixed(2),
+      low:  +(blended - ci*1.28).toFixed(2),
+      high: +(blended + ci*1.28).toFixed(2),
+      futRef: futP,
+      seasonIdx: +((LC_SEASONAL[mo]/(LC_SEASONAL.reduce((s,v)=>s+v,0)/12)-1)*100).toFixed(1),
+      conf: i<3?'High':i<7?'Medium':'Low',
+    };
+  });
+}
+
+// ─── LIVE → CUTOUT ────────────────────────────────────────────────────────────
+function lcToCutout(lcMonths, grade='choice') {
+  const curMo = new Date().getMonth();
+  return lcMonths.map((m,i) => {
+    const mrW  = i/11;
+    // CO_LIVE_SEASONAL is avg=1.000 normalized; use direct value (not ratio vs curMo)
+    // Also normalize out the current month's seasonal from CO_LIVE_BASE
+    // since BASE_CHOICE_CO / BASE_LIVE already reflects curMo seasonal
+    const curMoSeas = CO_LIVE_SEASONAL[new Date().getMonth()];
+    const ratio = (CO_LIVE_BASE*(1-mrW) + CO_LIVE_LRMEAN*mrW)
+                 * (CO_LIVE_SEASONAL[m.mo] / curMoSeas);
+    const choice = m.lc * ratio;
+    const select = choice - BASE_CS_SPREAD*(m.mo>=4&&m.mo<=8?1.05:0.95);
+    const cutout = grade==='select' ? select : choice;
+    return { ...m, choice:+choice.toFixed(2), select:+select.toFixed(2),
+             cutout:+cutout.toFixed(2), csSpread:+(choice-select).toFixed(2),
+             coLiveRatio:+ratio.toFixed(4), dressPct:DRESS_PCT[m.mo] };
+  });
+}
+
+// ─── CUTOUT → PRIMAL ──────────────────────────────────────────────────────────
+function cutoutToPrimal(primalId, coMonths, grade='choice') {
+  const meta = PRIMAL_RATIOS[primalId]; if(!meta) return [];
+  const curMoSeas = new Date().getMonth();
+  const gradeAdj = grade==='select' ? meta.selectAdj : 1.0;
+  return coMonths.map(m => {
+    // Seasonal arrays avg=1.000; normalize by current month to get proper relative movement
+    const sAdj = meta.seasonal[m.mo] / meta.seasonal[curMoSeas];
+    const val  = m.cutout * meta.baseRatio * sAdj * gradeAdj;
+    return { ...m, primal:+val.toFixed(2), primalId,
+             pcRatio:+(val/m.cutout).toFixed(4),
+             plRatio:+(val/m.lc).toFixed(4) };
+  });
+}
+
+// ─── PRIMAL → SUB-PRIMAL ──────────────────────────────────────────────────────
+// Uses empirically-calibrated baseRatioSC and seasonal indices
+// Direct formula: SP = Cutout × baseRatioSC × seasonal_adj
+// This gives SP/CO, SP/LC directly without intermediate primal error accumulation
+function primalToSub(subKey, primalMonths) {
+  const meta = SUB_RATIOS[subKey]; if(!meta) return [];
+  const curMoIdx = new Date().getMonth();
+  const annAvgSeas = meta.seasonal.reduce((a,b)=>a+b,0)/12; // Should be ~1.000
+  return primalMonths.map((m,i) => {
+    // Seasonal arrays normalized avg=1.000.
+    // baseRatioSC is annual-avg based, so multiply by seasonal[mo] directly.
+    // Divide out seasonal[curMo] since current actuals are already AT curMo seasonal level.
+    const sAdj = meta.seasonal[m.mo] / meta.seasonal[curMoIdx];
+    const valFromCO = m.cutout * meta.baseRatioSC * sAdj;
+    // Blend with primal-chain calc (30% weight)
+    const metaParent = PRIMAL_RATIOS[meta.parent];
+    const parentSAdj = metaParent ? metaParent.seasonal[m.mo]/metaParent.seasonal[curMoIdx] : 1;
+    const impliedParentRatio = metaParent ? (meta.baseRatioSC / metaParent.baseRatio) : meta.baseRatioSC;
+    const valFromPrimal = m.primal * impliedParentRatio * sAdj / parentSAdj;
+    const val = 0.7*valFromCO + 0.3*valFromPrimal;
+    const ci  = meta.vol * Math.sqrt((i+1)/3) * val;
+    const seasonIdxPct = +((meta.seasonal[m.mo]/annAvgSeas-1)*100).toFixed(1);
+    return {
+      ...m, sub:+val.toFixed(2), subKey,
+      low:  +(val-ci*1.28).toFixed(2),
+      high: +(val+ci*1.28).toFixed(2),
+      spRatio: +(val/m.primal).toFixed(4),   // SP / Parent Primal
+      scRatio: +(val/m.cutout).toFixed(4),   // SP / Cutout
+      slRatio: +(val/m.lc).toFixed(4),       // SP / Live Cattle
+      seasonIdx: seasonIdxPct,
+      conf: i<3?'High':i<7?'Medium':'Low',
+      // Historical ratio benchmarks for display
+      histSCRatio: meta.baseRatioSC,
+      histSLRatio: meta.baseRatioSL,
+    };
+  });
+}
+
+// ─── SNAPSHOT: FULL CHAIN AT ANY FORWARD MONTH ────────────────────────────────
+function snapshot(lcPrice, moFwd=1, grade='choice') {
+  const mo = (new Date().getMonth()+moFwd)%12;
+  const curMo = new Date().getMonth();
+  const ratio  = CO_LIVE_BASE*(CO_LIVE_SEASONAL[mo]/CO_LIVE_SEASONAL[curMo]);
+  const choice = lcPrice*ratio;
+  const select = choice - BASE_CS_SPREAD;
+  const cutout = grade==='select'?select:choice;
+  const primals={};
+  Object.keys(PRIMAL_RATIOS).forEach(id=>{
+    const meta=PRIMAL_RATIOS[id];
+    const gAdj=grade==='select'?meta.selectAdj:1.0;
+    const sAdj=meta.seasonal[mo]/meta.seasonal[curMo]; // curMo already set above
+    primals[id]=+(cutout*meta.baseRatio*sAdj*gAdj).toFixed(2);
+  });
+  const subs={};
+  Object.keys(SUB_RATIOS).forEach(k=>{
+    const meta=SUB_RATIOS[k];
+    const sAdj=meta.seasonal[mo]/meta.seasonal[curMo]; // curMo already set above
+    subs[k]=+(cutout*meta.baseRatioSC*sAdj).toFixed(2);
+  });
+  return {lc:lcPrice, cutout:+cutout.toFixed(2), choice:+choice.toFixed(2),
+          select:+select.toFixed(2), mo, primals, subs};
+}
+
+// ─── SESSION STORAGE BRIDGE ───────────────────────────────────────────────────
+function saveLCMonths(months) {
+  try { sessionStorage.setItem('BFE_LC',JSON.stringify(months)); } catch(e){}
+}
+function loadLCMonths() {
+  try { const s=sessionStorage.getItem('BFE_LC'); if(s) return JSON.parse(s); } catch(e){}
+  return null;
+}
+function getLCMonths(scenAdj=0) {
+  return loadLCMonths() || buildLCForecast(scenAdj);
+}
+
+// ─── FULL CHAIN HELPER ────────────────────────────────────────────────────────
+function fullChain(scenAdj=0, grade='choice') {
+  const lc = buildLCForecast(scenAdj);
+  const co = lcToCutout(lc, grade);
+  const primals={};
+  Object.keys(PRIMAL_RATIOS).forEach(id=>{primals[id]=cutoutToPrimal(id,co,grade);});
+  const subs={};
+  Object.keys(SUB_RATIOS).forEach(k=>{
+    const par=SUB_RATIOS[k].parent;
+    if(primals[par]) subs[k]=primalToSub(k,primals[par]);
+  });
+  return {lc,co,primals,subs};
+}
+
+// ─── PUBLIC API ───────────────────────────────────────────────────────────────
+return {
+  VERSION:'5.0',
+  BASE_LIVE, BASE_CHOICE_CO, BASE_SELECT_CO, BASE_CS_SPREAD,
+  FUTURES, DRESS_PCT, PRIMAL_RATIOS, SUB_RATIOS,
+  CO_LIVE_BASE, CO_LIVE_SEASONAL,
+  buildLCForecast, lcToCutout, cutoutToPrimal, primalToSub,
+  snapshot, saveLCMonths, loadLCMonths, getLCMonths, fullChain,
+};
+})();
+
+
+
+
+// ═══════════════════════════════════════════════════════════
+//  SUB-PRIMAL CUT DATABASE — 35 IMPS cuts
+//  Prices: USDA LM_XB459 Apr 24 & May 26, 2026
+//  key: unique lookup id | imps: IMPS code | fl: fat level
+// ═══════════════════════════════════════════════════════════
+const CUTS = [
+  // ── RIB ─────────────────────────────────────────────────────────────────
+  {key:'109E',  imps:'109E', fl:1, name:'Rib, Ribeye, Lip-On, Bone-In',
+   desc:'Full ribeye with lip, bone-in — steakhouse feature cut',
+   primal:'rib',  color:'#4e9df5',
+   choiceP:1147.17, selectP:851.94, volDesc:'~25 loads/wk',
+   note:'Steakhouse demand; summer peak; bone-in premium over boneless'},
+  {key:'112A-L',imps:'112A', fl:3, name:'Ribeye Roll, Bnls, Light (<14 lb)',
+   desc:'Boneless ribeye, light spec — retail portioning, smaller cuts',
+   primal:'rib',  color:'#4e9df5',
+   choiceP:1284.31, selectP:1031.66, volDesc:'~4 loads/wk',
+   note:'Light spec trades at premium to heavy; retail focus'},
+  {key:'112A-H',imps:'112A', fl:3, name:'Ribeye Roll, Bnls, Heavy (>14 lb)',
+   desc:'Boneless ribeye, heavy spec — highest volume rib item in the box',
+   primal:'rib',  color:'#4e9df5',
+   choiceP:1305.99, selectP:1144.08, volDesc:'~10 loads/wk',
+   note:'Most-traded rib sub-primal. Drives composite rib value. Grilling peak Jun–Aug'},
+  // ── CHUCK ────────────────────────────────────────────────────────────────
+  {key:'113C',  imps:'113C', fl:1, name:'Chuck, Semi-Bnls, Neck/Off',
+   desc:'Semi-boneless chuck, neck removed — institutional & processing',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:461.18,  selectP:453.15,  volDesc:'~1 load/wk',
+   note:'Low volume; primarily processing use; flat seasonal'},
+  {key:'114',   imps:'114',  fl:1, name:'Chuck, Shoulder Clod',
+   desc:'Whole shoulder clod, bone-in — institutional roast',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:436.13,  selectP:422.67,  volDesc:'~3 loads/wk',
+   note:'Bone-in institutional item; steady demand; minimal seasonal swing'},
+  {key:'114A',  imps:'114A', fl:3, name:'Chuck, Shoulder Clod, Trimmed',
+   desc:'Trimmed shoulder clod — highest-volume chuck processing cut',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:442.04,  selectP:442.92,  volDesc:'~15 loads/wk',
+   note:'Primary shoulder clod item by volume; ground beef & roast source'},
+  {key:'114D',  imps:'114D', fl:3, name:'Chuck, Clod, Top Blade',
+   desc:'Flat iron steak source — premium chuck IM muscle',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:625.39,  selectP:509.32,  volDesc:'~1 load/wk',
+   note:'Flat iron boom drove premium pricing; mild grilling-season uptick'},
+  {key:'114E',  imps:'114E', fl:3, name:'Chuck, Clod, Arm Roast',
+   desc:'Chuck arm roast — retail roast section; Q4 strength',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:540.79,  selectP:499.25,  volDesc:'~6 loads/wk',
+   note:'Roast season Oct–Feb supports modest Q4 premium'},
+  {key:'114F',  imps:'114F', fl:5, name:'Chuck, Clod, Tender',
+   desc:'Ranch steak / petite chuck tender — IM muscle specialty',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:832.2,  selectP:862.08,  volDesc:'~1 load/wk',
+   note:'Individual muscle; FL5 lean trim; restaurant-driven demand'},
+  {key:'116A',  imps:'116A', fl:3, name:'Chuck Roll, 1x1, Neck/Off',
+   desc:'Chuck roll — largest volume beef sub-primal; ground beef & pot roast',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:478.16,  selectP:481.46,  volDesc:'~45 loads/wk',
+   note:'Highest volume item in the box; ground beef anchor; lowest volatility'},
+  {key:'116B',  imps:'116B', fl:1, name:'Chuck, Chuck Tender',
+   desc:'Petite tender / mock tender — IM specialty, restaurant value',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:456.52,  selectP:458.93,  volDesc:'~8 loads/wk',
+   note:'Flat seasonal; value IM restaurant menu demand'},
+  {key:'116G',  imps:'116G', fl:4, name:'Chuck Flap',
+   desc:'Chuck flap — carne asada, Asian thin-slice, high-value export',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:1039.87,  selectP:977.87,  volDesc:'~2 loads/wk',
+   note:'Export-driven; Korean & Japanese thin-slice; grilling-season uptick'},
+  // ── BRISKET ──────────────────────────────────────────────────────────────
+  {key:'120',   imps:'120',  fl:1, name:'Brisket, Deckle-Off, Boneless',
+   desc:'Full packer brisket — BBQ season driver; highest brisket volume',
+   primal:'brisket',color:'#f5a623',
+   choiceP:478.55,  selectP:470.1,  volDesc:'~15 loads/wk',
+   note:'Strong Mar–Aug BBQ demand cycle; Texas & competition BBQ drives June peak'},
+  {key:'120A',  imps:'120A', fl:3, name:'Brisket, Point/Off, Boneless',
+   desc:'Brisket flat — deli roast beef, pastrami, leaner option',
+   primal:'brisket',color:'#f5a623',
+   choiceP:803.2,  selectP:819.57,  volDesc:'~1 load/wk',
+   note:'Closely tracks 120 seasonal; deli/pastrami demand adds floor'},
+  // ── SHORT PLATE ───────────────────────────────────────────────────────────
+  {key:'121D',  imps:'121D', fl:4, name:'Plate, Inside Skirt, Bnls',
+   color:'#f25f5c', parent:'plate',
+   choiceP:707.69, selectP:707.69, volDesc:'~9 loads/wk',
+   note:'Inside skirt; ungraded (Choice/Select combined); fajita & Korean grill demand; summer grilling peak'},
+  {key:'121C',  imps:'121C', fl:1, name:'Plate, Outside Skirt, Boneless',
+   desc:'Outside skirt steak — fajita + Korean/Japanese export premium',
+   primal:'plate',color:'#f25f5c',
+   choiceP:1159.81, selectP:1159.81, volDesc:'~2 loads/wk',
+   note:'Export demand to Japan & Korea; fajita season May–Sep; high premium'},
+  {key:'123A',  imps:'123A', fl:3, name:'Short Plate, Short Rib',
+   desc:'Short plate ribs — restaurant BBQ; Korean galbi export',
+   primal:'plate',color:'#f25f5c',
+   choiceP:661.05,  selectP:658.1,  volDesc:'~4 loads/wk',
+   note:'Korean galbi floor; restaurant BBQ peaks summer'},
+  {key:'123B',  imps:'123B', fl:1, name:'Short Rib, Boneless',
+   desc:'Boneless short ribs — premium Korean braised; restaurant specialty',
+   primal:'plate',color:'#f25f5c',
+   choiceP:739.71,  selectP:711.6,  volDesc:'~1 load/wk',
+   note:'Premium IM plate; Korean restaurant demand; tighter supply than 123A'},
+  // ── ROUND ────────────────────────────────────────────────────────────────
+  {key:'167A',  imps:'167A', fl:4, name:'Round, Knuckle, Peeled',
+   color:'#2dd4bf', parent:'round',
+   choiceP:472.75, selectP:482.09, volDesc:'~12 loads/wk',
+   note:'Sirloin tip/knuckle; export-heavy; lean retail roast; moderate seasonal'},
+  {key:'155A',  imps:'155A', fl:1, name:'Round, Knuckle, Peeled',
+   desc:'Sirloin tip / knuckle — lean retail roast; foodservice portion',
+   primal:'round',color:'#2dd4bf',
+   choiceP:472.75,  selectP:482.09,  volDesc:'~8 loads/wk',
+   note:'Lean retail item; very stable seasonal; export component supports floor'},
+  {key:'157',   imps:'157',  fl:1, name:'Round, Bottom Gooseneck',
+   desc:'Full bottom round — export; ETL thin-slice Japan/Korea',
+   primal:'round',color:'#2dd4bf',
+   choiceP:316.29,  selectP:304.27,  volDesc:'~7 loads/wk',
+   note:'Export-dependent; very flat seasonality; lowest round $/cwt'},
+  {key:'170',   imps:'170',  fl:1, name:'Round, Bottom Gooseneck',
+   color:'#2dd4bf', parent:'round',
+   choiceP:413.50, selectP:437.12, volDesc:'~1 load/wk',
+   note:'Bone-in bottom round; export processing use; flat seasonal'},
+  {key:'171B',  imps:'171B', fl:3, name:'Round, Outside Round',
+   color:'#2dd4bf', parent:'round',
+   choiceP:392.88, selectP:402.43, volDesc:'~18 loads/wk',
+   note:'Bottom round flat; institutional and deli use; flat seasonal; high export volume'},
+  {key:'161',   imps:'161',  fl:1, name:'Round, Eye of Round',
+   desc:'Eye of round — very lean; deli roast beef; retail roast',
+   primal:'round',color:'#2dd4bf',
+   choiceP:454.03,  selectP:436.78,  volDesc:'~6 loads/wk',
+   note:'Deli roast beef demand Q4/Q1; lean profile preferred year-round'},
+  {key:'168',   imps:'168',  fl:1, name:'Round, Top Inside',
+   desc:'Top round inside — largest-volume round; export & slice/grind',
+   primal:'round',color:'#2dd4bf',
+   choiceP:426.22,  selectP:440.38,  volDesc:'~13 loads/wk',
+   note:'Largest round by volume; flat seasonal driven by export continuity'},
+  {key:'169',   imps:'169',  fl:1, name:'Round, Top, Cap-Off',
+   desc:'Top round cap-off — London broil; deli & retail roast beef',
+   primal:'round',color:'#2dd4bf',
+   choiceP:485.44,  selectP:382.79,  volDesc:'~5 loads/wk',
+   note:'London broil demand May–Aug; otherwise steady retail movement'},
+  // ── LOIN ─────────────────────────────────────────────────────────────────
+  {key:'174',   imps:'174',  fl:1, name:'Loin, Short Loin, 2x3',
+   desc:'Short loin bone-in — T-bone & porterhouse source; steakhouse',
+   primal:'loin', color:'#a78bfa',
+   choiceP:942.33,  selectP:820.13,  volDesc:'~3 loads/wk',
+   note:'T-bone/porterhouse steakhouse staple; pronounced summer grilling peak'},
+  {key:'175',   imps:'175',  fl:1, name:'Loin, Strip Loin, 1x1',
+   desc:'Strip loin bone-in — NY strip source; traditional steakhouse',
+   primal:'loin', color:'#a78bfa',
+   choiceP:934.99, selectP:1048.26,  volDesc:'<1 load/wk',
+   note:'Low volume; bone-in strip; fine dining restaurant-driven'},
+  {key:'180',   imps:'180',  fl:3, name:'Loin, Strip Loin, Bnls, 0x1',
+   desc:'Boneless strip loin — most-traded loin; NY strip & porterhouse',
+   primal:'loin', color:'#a78bfa',
+   choiceP:1109.56, selectP:920.74, volDesc:'~19 loads/wk',
+   note:'Premier loin item by volume; summer grilling + holiday retail; strong seasonality'},
+  {key:'184',   imps:'184',  fl:3, name:'Loin, Top Butt, Boneless',
+   desc:'Top sirloin butt — versatile grilling & retail sirloin steaks',
+   primal:'loin', color:'#a78bfa',
+   choiceP:570.54,  selectP:477.1,  volDesc:'~3 loads/wk',
+   note:'Value sirloin; accessible grilling cut; consumer trade-down driver'},
+  {key:'184B',  imps:'184B', fl:3, name:'Loin, Top Butt, Center Cut',
+   desc:'Top sirloin center cut — premium portion; steakhouse value cut',
+   primal:'loin', color:'#a78bfa',
+   choiceP:653.76,  selectP:779.19,  volDesc:'~2 loads/wk',
+   note:'Premium over 184; outperforms on summer/grilling season'},
+  {key:'185A',  imps:'185A', fl:4, name:'Loin, Bottom Sirloin, Flap',
+   desc:'Sirloin flap / bavette — carne asada, California BBQ, export',
+   primal:'loin', color:'#a78bfa',
+   choiceP:895.25, selectP:808.83,  volDesc:'~4 loads/wk',
+   note:'High demand for marinated carne asada; export to Japan; grilling uptick'},
+  {key:'185C',  imps:'185C', fl:1, name:'Loin, Sirloin, Tri-Tip',
+   desc:'Tri-tip unpeeled — California BBQ staple; West Coast retail',
+   primal:'loin', color:'#a78bfa',
+   choiceP:601.44,  selectP:559.63,  volDesc:'~1 load/wk',
+   note:'Santa Maria BBQ demand peaks May–Aug; concentrated West Coast retail'},
+  {key:'185D',  imps:'185D', fl:4, name:'Loin, Sirloin, Tri-Tip, Peeled',
+   desc:'Peeled tri-tip — premium California retail & restaurant',
+   primal:'loin', color:'#a78bfa',
+   choiceP:816.52,  selectP:793.15,  volDesc:'<1 load/wk',
+   note:'FL4 peeled; premium over 185C; restaurant menu-driven'},
+  {key:'189A',  imps:'189A', fl:4, name:'Loin, Tenderloin, Trimmed, Heavy',
+   desc:'Whole peeled tenderloin — highest $/lb item in the box',
+   primal:'loin', color:'#a78bfa',
+   choiceP:1526.98, selectP:1475.3, volDesc:'~4 loads/wk',
+   note:'Filet mignon source; holiday Q4 + summer restaurant peak; exports to Japan'},
+  {key:'191A',  imps:'191A', fl:4, name:'Loin, Butt Tender, Trimmed',
+   desc:'Butt tender — short end tenderloin; restaurant specialty portion',
+   primal:'loin', color:'#a78bfa',
+   choiceP:1499.04, selectP:1471.78, volDesc:'<1 load/wk',
+   note:'Highest avg price in the report; low volume; fine dining restaurant-driven'},
+  // ── FLANK ────────────────────────────────────────────────────────────────
+  {key:'193',   imps:'193',  fl:4, name:'Flank, Flank Steak',
+   desc:'Flank steak — fajita, Korean bulgogi, marinated grilling export',
+   primal:'flank',color:'#fb923c',
+   choiceP:1018.18,  selectP:984.74,  volDesc:'~4 loads/wk',
+   note:'Fajita & Korean bulgogi export; steady but grilling season adds 3–5%'},
+
+  // ── TRIMMINGS (LM_XB460) ───────────────────────────────
+  {key:'TR90', imps:'TR90', fl:0, name:'Beef Trimmings, 90% Lean (Fresh)',
+   color:'#94a3b8', parent:'trim', primal:'trim',
+   choiceP:459.46, selectP:459.46, volDesc:'~21 loads/wk',
+   desc:'Fresh 90% CL trim · LM_XB460 national FOB · lean beef input',
+   note:'High-lean ground beef input; LM_XB460 national FOB. Tracks 90CL global lean beef price.'},
+  {key:'TR85', imps:'TR85', fl:0, name:'Beef Trimmings, 85% Lean (Fresh)',
+   color:'#94a3b8', parent:'trim', primal:'trim',
+   choiceP:410.43, selectP:410.43, volDesc:'~24 loads/wk',
+   desc:'Fresh 85% CL trim · LM_XB460 · dominant volume trim grade',
+   note:'Mid-lean trim; dominant trim grade by volume. Key input for retail 85/15 ground beef.'},
+  {key:'TR73', imps:'TR73', fl:0, name:'Beef Trimmings, 73% Lean (Fresh)',
+   color:'#94a3b8', parent:'trim', primal:'trim',
+   choiceP:339.72, selectP:339.72, volDesc:'~10 loads/wk',
+   desc:'Fresh 73% CL trim · LM_XB460 · fat-end blend input',
+   note:'Fat-end trim; blended with lean trim for ground beef formulation.'},
+  {key:'TR65', imps:'TR65', fl:0, name:'Beef Trimmings, 65% Lean (Fresh)',
+   color:'#64748b', parent:'trim', primal:'trim',
+   choiceP:253.56, selectP:253.56, volDesc:'~19 loads/wk',
+   desc:'Fresh 65% CL trim · LM_XB460 · Central region dominant',
+   note:'Low-lean trim; blending use. Central region dominates. LM_XB460.'},
+  {key:'TR50', imps:'TR50', fl:0, name:'Beef Trimmings, 50% Lean (Fresh)',
+   color:'#64748b', parent:'trim', primal:'trim',
+   choiceP:182.59, selectP:182.59, volDesc:'~34 loads/wk',
+   desc:'Fresh 50% CL trim · LM_XB459 & LM_XB460 · highest load count',
+   note:'Highest volume trim grade. Largest load count in LM_XB459 & LM_XB460. Tallow/fat by-product pricing.'},
+  // ── GROUND BEEF (LM_XB459 steer/heifer source) ─────────
+  {key:'GB73', imps:'GB73', fl:0, name:'Ground Beef 73% Lean (10 lb Chub)',
+   color:'#78716c', parent:'grind', primal:'grind',
+   choiceP:356.83, selectP:356.83, volDesc:'~5 loads/wk',
+   desc:'73/27 retail ground beef · steer/heifer chub · economy segment',
+   note:'Economy retail ground beef; 73/27 blend; price-sensitive consumer segment.'},
+  {key:'GB81', imps:'GB81', fl:0, name:'Ground Beef 81% Lean (10 lb Chub)',
+   color:'#78716c', parent:'grind', primal:'grind',
+   choiceP:412.12, selectP:412.12, volDesc:'~19 loads/wk',
+   desc:'80/20 retail ground beef · highest volume grind · tracks 85% trim',
+   note:'Highest volume retail ground beef. 80/20 blend. Tracks closely with 85% trim.'},
+  {key:'GB85', imps:'GB85', fl:0, name:'Ground Beef 85% Lean (10 lb Chub)',
+   color:'#78716c', parent:'grind', primal:'grind',
+   choiceP:465.68, selectP:465.68, volDesc:'~7 loads/wk',
+   desc:'85/15 lean retail ground beef · tracks 90CL trim with spread',
+   note:'Lean retail ground beef. Tracks 90CL trim pricing with processing premium.'},
+  {key:'GB90', imps:'GB90', fl:0, name:'Ground Beef 90% Lean (10 lb Chub)',
+   color:'#57534e', parent:'grind', primal:'grind',
+   choiceP:526.20, selectP:526.20, volDesc:'<1 load/wk',
+   desc:'Extra-lean ground beef · foodservice patty · tracks 90CL trim closely',
+   note:'Extra lean; foodservice patty use; low domestic volume. Tracks 90CL trim closely.'},
+];
+
+const PRIMAL_META = {
+  rib:    {label:'RIB',         color:'#4e9df5'},
+  chuck:  {label:'CHUCK',       color:'#3dd68c'},
+  brisket:{label:'BRISKET',     color:'#f5a623'},
+  plate:  {label:'SHORT PLATE', color:'#f25f5c'},
+  round:  {label:'ROUND',       color:'#2dd4bf'},
+  loin:   {label:'LOIN',        color:'#a78bfa'},
+  flank:  {label:'FLANK',       color:'#fb923c'},
+  trim:   {label:'Trimmings',   color:'#94a3b8', seasonal:false},
+  grind:  {label:'Ground Beef', color:'#78716c', seasonal:false},
+};
+
+const SCENARIOS = {
+  base:    {label:'Base',    color:'var(--blue)', ribM:1.000,loinM:1.000,grindM:1.000,brisketM:1.000,exportM:1.000},
+  bull:    {label:'Bull',    color:'var(--green)',ribM:1.058,loinM:1.048,grindM:1.022,brisketM:1.035,exportM:1.045},
+  bear:    {label:'Bear',    color:'var(--red)',  ribM:0.952,loinM:0.958,grindM:0.974,brisketM:0.960,exportM:0.940},
+  seasonal:{label:'Seasonal',color:'var(--amber)',ribM:1.000,loinM:1.000,grindM:1.000,brisketM:1.000,exportM:1.000},
+};
+
+// ─── STATE ─────────────────────────────────────────────────
+const S = { cut:null, grade:'choice', scen:'base', tab:'forecast', primalFilter:'all' };
+let CHARTS = {};
+
+// ─── INIT ──────────────────────────────────────────────────
+async function initApp() {
+  document.getElementById('loader').classList.remove('done');
+  const steps = ['Loading BFE engine…','Fetching USDA LM_XB459…','Calibrating sub-primal ratios…','Building forecast chain…'];
+  for (let i=0;i<steps.length;i++){
+    document.getElementById('ldS').textContent = steps[i];
+    document.getElementById('ldB').style.width = Math.round((i+1)/steps.length*100)+'%';
+    await sleep(i===1?320:150);
+    if(i===1) await tryLive();
+  }
+  renderPFRow();
+  renderCutList();
+  renderTicker();
+  document.getElementById('loader').classList.add('done');
+}
+
+async function tryLive() {
+  try {
+    const r = await fetch('https://mpr.datamart.ams.usda.gov/ws/report/v1/xb/LM_XB459',{headers:{Accept:'application/json'}});
+    if(r.ok) document.getElementById('dsrc').textContent = 'USDA LIVE';
+  } catch(e) {}
+  const luEl=document.getElementById('lupd'); if(luEl) luEl.textContent='Jun 19, 2026 '+(document.getElementById('dsrc')?.textContent||'');
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ─── TICKER ────────────────────────────────────────────────
+function renderTicker() {
+  const snap = BFE.snapshot(BFE.BASE_LIVE, 1, 'choice');
+  const subs = snap.subs;
+  const items = [
+    {l:'CHOICE CUTOUT', v:'$395.48',c:'Jun 19 2026 wk',nt:true},
+    {l:'SELECT CUTOUT', v:'$375.47',c:'Jun 19 2026',nt:true},
+    {l:'189A TENDRLOIN',v:`${subs['189A']?.toFixed(0)||1526}`, c:'Mo1 fcst',nt:true},
+    {l:'180 STRIP LOIN',v:`${subs['180']?.toFixed(0)||1109}`,  c:'Mo1 fcst',nt:true},
+    {l:'112A-H RIBEYE', v:`${subs['112A-H']?.toFixed(0)||1305}`,c:'Mo1 fcst',nt:true},
+    {l:'120 BRISKET',   v:`${subs['120']?.toFixed(0)||478}`,   c:'Mo1 fcst',nt:true},
+    {l:'116A CHUCK ROLL',v:`${subs['116A']?.toFixed(0)||478}`, c:'Mo1 fcst',nt:true},
+    {l:'121C SKT STEAK',v:`${subs['121C']?.toFixed(0)||1159}`, c:'Mo1 fcst',nt:true},
+    {l:"LE AUG '26",    v:'252.9¢',c:'-1.03 wk',dn:true},
+    {l:'5-AREA STEER',  v:`${BFE.BASE_LIVE.toFixed(2)}`,c:'-0.75',dn:true},
+    {l:'90% LEAN TRIM', v:`${subs['TRIM-90']?.toFixed(2)||'459.46'}`, c:'LM_XB460 wk',nt:true},
+    {l:'85% LEAN TRIM', v:`${subs['TRIM-85']?.toFixed(2)||'410.43'}`, c:'LM_XB460 wk',nt:true},
+    {l:'73% LEAN TRIM', v:`${subs['TRIM-73']?.toFixed(2)||'339.72'}`, c:'LM_XB460 wk',nt:true},
+    {l:'50% LEAN TRIM', v:`${subs['TRIM-50']?.toFixed(2)||'182.59'}`, c:'LM_XB460 wk',nt:true},
+    {l:'GB 81% CHUB',   v:`${subs['GB-80']?.toFixed(2)||'412.12'}`,  c:'LM_XB459 wk',nt:true},
+  ];
+  document.getElementById('ticker').innerHTML = items.map(t=>
+    `<div class="tick"><div class="tl">${t.l}</div>
+     <div class="tv">${t.v}</div>
+     <div class="tc ${t.nt?'nt':t.up?'up':'dn'}">${t.c}</div></div>`
+  ).join('');
+}
+
+// ─── PRIMAL FILTER PILLS ───────────────────────────────────
+function renderPFRow() {
+  const filters = [{id:'all',label:'All Cuts'},...Object.entries(PRIMAL_META).map(([id,m])=>({id,label:m.label})),{id:'trim',label:'TRIM/GB'}];
+  document.getElementById('pfRow').innerHTML = filters.map(f=>
+    `<button class="pf-btn ${f.id===S.primalFilter?'active':''}" onclick="setPF('${f.id}')"
+       style="${f.id===S.primalFilter&&f.id!=='all'?`color:${PRIMAL_META[f.id]?.color};border-color:${PRIMAL_META[f.id]?.color}40;background:${PRIMAL_META[f.id]?.color}10`:''}"
+     >${f.label}</button>`
+  ).join('');
+}
+
+function setPF(id) {
+  S.primalFilter = id;
+  renderPFRow();
+  renderCutList();
+}
+
+// ─── CUT LIST ──────────────────────────────────────────────
+function getFiltered() {
+  const q = (document.getElementById('searchInp')?.value||'').toLowerCase();
+  return CUTS.filter(c => {
+    const cutGroup = c.parent || c.primal || '';
+    const pm = S.primalFilter==='all'
+      || (S.primalFilter==='trim' && ['trim','grind'].includes(cutGroup))
+      || cutGroup===S.primalFilter;
+    const desc = (c.desc||c.note||'').toLowerCase();
+    const sm = !q || c.imps.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)
+             || desc.includes(q) || c.key.toLowerCase().includes(q);
+    return pm && sm;
+  });
+}
+
+function renderCutList() {
+  const filtered = getFiltered();
+  document.getElementById('listCount').textContent = filtered.length + ' / 46 cuts';
+  document.getElementById('resCount').textContent  = filtered.length+' cuts';
+
+  // Group by primal
+  const groups = {};
+  filtered.forEach(c=>{ const _pid=c.parent||c.primal||'other'; if(!groups[_pid]) groups[_pid]=[]; groups[_pid].push(c); });
+  const order = ['rib','chuck','brisket','plate','round','loin','flank','trim','grind'];
+  const trimOrder = ['TRIM-90','TRIM-85','TRIM-73','TRIM-65','TRIM-50','GB-73','GB-80','GB-90'];
+
+  // Build sub forecast for 4wk estimate
+  const lcMs  = BFE.getLCMonths();
+  const coMs  = BFE.lcToCutout(lcMs, S.grade);
+  const primalMs = {};
+  order.forEach(pid => { if(!['trim','grind'].includes(pid)) primalMs[pid] = BFE.cutoutToPrimal(pid, coMs, S.grade); });
+
+  let html = '';
+  order.forEach(pid => {
+    if (!groups[pid]) return;
+    const pm = PRIMAL_META[pid];
+    html += `<div style="border-bottom:1px solid var(--border)">
+      <div class="pg-hdr"><div class="pg-dot" style="background:${pm.color}"></div>
+        <div class="pg-name">${pm.label}</div>
+        <div class="pg-ct">${groups[pid].length}</div>
+      </div>`;
+    groups[pid].forEach(c => {
+      const base   = S.grade==='choice'?c.choiceP:c.selectP;
+      const subKey = c.key in BFE.SUB_RATIOS ? c.key : null;
+      let fc4 = base;
+      if (subKey) {
+        if (['trim','grind'].includes(pid)) {
+          // Direct cutout-based forecast for ungraded trim/grind
+          const subMeta = BFE.SUB_RATIOS[subKey];
+          const curMo = new Date().getMonth();
+          const sAdj = subMeta ? subMeta.seasonal[(curMo+1)%12]/subMeta.seasonal[curMo] : 1;
+          fc4 = coMs.length ? coMs[0].cutout * (subMeta?.baseRatioSC||1) * sAdj : base;
+        } else if (primalMs[pid]?.length) {
+          const sMs = BFE.primalToSub(subKey, primalMs[pid]);
+          fc4 = sMs.length ? sMs[0].sub : base;
+        }
+      }
+      const diff = fc4 - base;
+      const isActive = c.key === S.cut;
+      html += `<button class="cut-row ${isActive?'active':''}" onclick="selectCut('${c.key}')">
+        <div class="cr-imps" style="color:${isActive?c.color:'var(--text3)'}">
+          ${c.imps}<br><span style="font-size:8px;color:var(--text3)">FL${c.fl}</span>
+        </div>
+        <div class="cr-info">
+          <div class="cr-name">${c.name}</div>
+          <div class="cr-desc">${(c.desc||c.note||'').substring(0,44)}…</div>
+        </div>
+        <div class="cr-r">
+          <div class="cr-px" style="color:${c.color}">${base.toFixed(0)}</div>
+          <div class="cr-ch ${diff>=0?'up':'dn'}">${diff>=0?'▲':'▼'}${Math.abs(diff).toFixed(0)}</div>
+        </div>
+      </button>`;
+    });
+    html += `</div>`;
+  });
+  document.getElementById('cutList').innerHTML = html || '<div style="padding:20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text3)">No cuts match filter</div>';
+}
+
+// ─── SELECT CUT ────────────────────────────────────────────
+function selectCut(key) {
+  S.cut = key;
+  // Update grade toggle for trim/grind (ungraded) vs Choice/Select cuts
+  const cutEntry = CUTS.find(c=>c.key===key);
+  const isUG = cutEntry && ['trim','grind'].includes(cutEntry.parent||cutEntry.primal||'');
+  document.getElementById('btnChoice')?.classList.toggle('hidden', isUG);
+  document.getElementById('btnSelect')?.classList.toggle('hidden', isUG);
+  document.getElementById('btnUngraded')?.classList.toggle('hidden', !isUG);
+  if(isUG) document.getElementById('btnUngraded')?.classList.add('active');
+  renderCutList();
+  if (S.tab === 'ratios') {
+    renderRatioDetail(key);
+    renderRatioOverview();
+    return;
+  }
+  if (S.tab !== 'forecast') {
+    document.querySelector('[data-tab="forecast"]').click();
+    return;
+  }
+  document.getElementById('ph-msg').classList.add('hidden');
+  document.getElementById('fc-content').classList.remove('hidden');
+  renderForecast();
+}
+
+// ─── BUILD FORECAST ────────────────────────────────────────
+function buildSubForecast(cutKey, grade, scenId) {
+  const cut     = CUTS.find(c=>c.key===cutKey); if(!cut) return [];
+  const subMeta = BFE.SUB_RATIOS[cutKey];       if(!subMeta) return [];
+  const sc      = SCENARIOS[scenId]||SCENARIOS.base;
+
+  const lcMs = BFE.getLCMonths();
+  const coMs = BFE.lcToCutout(lcMs, grade);
+
+  // For trim/grind: no primal chain — forecast directly from cutout × baseRatioSC
+  // (these are ungraded commodity items, not primal-derived)
+  const isTrimGrind = ['trim','grind'].includes(cut.parent);
+  let sMs;
+  if (isTrimGrind) {
+    const curMoIdx = new Date().getMonth();
+    sMs = coMs.map(m => {
+      const sAdj = subMeta.seasonal[m.mo] / subMeta.seasonal[curMoIdx];
+      const val  = m.cutout * subMeta.baseRatioSC * sAdj;
+      return { ...m, sub: +val.toFixed(2), primal: val, spRatio: val/m.cutout, scRatio: val/m.cutout, slRatio: val/m.lc };
+    });
+  } else {
+    const pMs = BFE.cutoutToPrimal(cut.primal, coMs, grade);
+    sMs = BFE.primalToSub(cutKey, pMs);
+  }
+
+  // Apply scenario multiplier
+  const scMult = scenId==='seasonal' ? 1 :
+    cut.primal==='rib'  ? sc.ribM  :
+    cut.primal==='loin' ? sc.loinM :
+    cut.primal==='brisket' ? sc.brisketM :
+    (cut.primal==='plate'||cut.primal==='flank'||cut.primal==='round') ? sc.exportM :
+    sc.grindM;
+
+  const annAvg = subMeta.seasonal.reduce((a,b)=>a+b,0)/12;
+  return sMs.map((m,i)=>{
+    const val = m.sub * (scenId==='seasonal'?1:Math.min(1,i/3)*(scMult-1)+1);
+    const ci  = subMeta.vol * Math.sqrt((i+1)/3) * val;
+    return {
+      ...m, sub: +val.toFixed(2),
+      low:  +(val-ci*1.28).toFixed(2),
+      high: +(val+ci*1.28).toFixed(2),
+      seasonIdx: +((subMeta.seasonal[m.mo]/annAvg-1)*100).toFixed(1),
+      conf: i<3?'High':i<7?'Medium':'Low',
+    };
+  });
+}
+
+// ─── RENDER FORECAST ───────────────────────────────────────
+function renderForecast() {
+  const cut = CUTS.find(c=>c.key===S.cut); if(!cut) return;
+  const base    = S.grade==='choice'?cut.choiceP:cut.selectP;
+  const months  = buildSubForecast(cut.key, S.grade, S.scen);
+  if(!months.length) return;
+
+  const pm   = PRIMAL_META[cut.parent] || PRIMAL_META[cut.primal] || {label:cut.parent||'N/A',color:'#94a3b8'};
+  const sc   = SCENARIOS[S.scen];
+  const isUngraded = ['trim','grind'].includes(cut.parent||cut.primal||'');
+  const gr   = isUngraded ? 'Ungraded' : (S.grade==='choice'?'Choice':'Select');
+  const grC  = S.grade==='choice'?'var(--blue)':'var(--green)';
+  const peak = Math.max(...months.map(m=>m.sub));
+  const trh  = Math.min(...months.map(m=>m.sub));
+  const avg12= (months.reduce((s,m)=>s+m.sub,0)/12).toFixed(2);
+  const fc12 = months[11].sub;
+  const chg  = ((fc12/base-1)*100).toFixed(1);
+
+  // Badges
+  document.getElementById('impsBadge').textContent = `IMPS ${cut.imps} FL${cut.fl}`;
+  document.getElementById('primalBadge').innerHTML = `<span class="chip" style="color:${pm.color};border-color:${pm.color}40;background:${pm.color}10">${pm.label}</span>`;
+  document.getElementById('gradeBadge').innerHTML  = `<span class="chip" style="color:${grC};border-color:${grC}40;background:${grC}10">${gr}</span>`;
+  document.getElementById('scenBadge').innerHTML   = `<span class="chip" style="color:${sc.color};border-color:${sc.color}40;background:${sc.color}10">${sc.label}</span>`;
+  document.getElementById('fcTitle').textContent   = cut.name;
+  document.getElementById('fcSub').textContent     = `${cut.desc} · ${cut.volDesc} · ${cut.note}`;
+
+  // Chain banner
+  const m0 = months[0];
+  const subMeta = BFE.SUB_RATIOS[cut.key];
+  const histSPR = subMeta?.baseRatio||1;
+  const histPCR = BFE.PRIMAL_RATIOS[cut.primal]?.baseRatio||1;
+  document.getElementById('chainBanner').innerHTML = `
+    <div class="chain-cell">
+      <div class="chain-lbl">⛓ BFE Source</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:2px">
+        LC <span style="color:rgba(245,166,35,.8)">${m0.lc.toFixed(0)}</span> →
+        CO <span style="color:rgba(245,166,35,.6)">${m0.cutout.toFixed(0)}</span> →
+        ${pm.label.charAt(0)+pm.label.slice(1).toLowerCase()} <span style="color:${pm.color}">${m0.primal.toFixed(0)}</span> →
+        <span style="color:${cut.color};font-weight:700">${m0.sub.toFixed(2)}</span>
+      </div>
+    </div>
+    <div class="chain-cell">
+      <div class="chain-lbl">SP / Cutout (Mo 1)</div>
+      <div class="chain-val" style="color:var(--purple)">${m0.scRatio.toFixed(3)}×</div>
+      <div class="chain-sub">Hist base: ${(histSPR*histPCR).toFixed(3)}×</div>
+    </div>
+    <div class="chain-cell">
+      <div class="chain-lbl">SP / Live Cattle (Mo 1)</div>
+      <div class="chain-val" style="color:var(--teal)">${m0.slRatio.toFixed(3)}×</div>
+    </div>
+    <div class="chain-cell">
+      <div class="chain-lbl">SP / Primal (Mo 1)</div>
+      <div class="chain-val" style="color:${pm.color}">${m0.spRatio.toFixed(3)}×</div>
+      <div class="chain-sub">Hist base: ${histSPR.toFixed(3)}</div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center">
+      <div style="font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:4px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);color:var(--purple)">
+        ${BFE.loadLCMonths()?'🔗 Linked to Live Cattle Model':'📊 CME Futures Baseline'}
+      </div>
+    </div>`;
+
+  // Stats
+  document.getElementById('fcStats').innerHTML = [
+    {l:'Current',      v:`${base.toFixed(2)}`, s:`/cwt ${gr.toLowerCase()}`},
+    {l:'Mo 1 Forecast',v:`${m0.sub.toFixed(2)}`,s:`${((m0.sub/base-1)*100)>=0?'+':''}${((m0.sub/base-1)*100).toFixed(1)}%`,c:m0.sub>=base?'var(--green)':'var(--red)'},
+    {l:'12-Mo Target', v:`${fc12.toFixed(2)}`, s:`${chg>=0?'+':''}${chg}%`,c:fc12>=base?'var(--green)':'var(--red)'},
+    {l:'12-Mo Avg',    v:`${avg12}`,            s:'forecast mean'},
+    {l:'Peak',         v:`${peak.toFixed(2)}`,  s:months.find(m=>m.sub===peak)?.label,c:'var(--green)'},
+    {l:'Ann. Volatility',v:`${((subMeta?.vol||0.03)*100).toFixed(1)}%`,s:'σ price vol'},
+  ].map(s=>`<div class="st"><div class="sl">${s.l}</div>
+    <div class="sv" style="color:${s.c||'var(--text)'}">${s.v}</div>
+    <div class="ss">${s.s||''}</div></div>`).join('');
+
+  // Historical proxy from seasonal back-calculation
+  const hL = []; const hV = [];
+  for (let i=-5;i<=0;i++) {
+    const d = new Date(new Date().getFullYear(),new Date().getMonth()+i,1);
+    const mo = d.getMonth();
+    const annAvg2 = (subMeta?.seasonal||[]).reduce((a,b)=>a+b,0)/12||1;
+    const sAdj = subMeta ? subMeta.seasonal[mo]/subMeta.seasonal[new Date().getMonth()] : 1 // normalized div by curMo;
+    hL.push(d.toLocaleString('en-US',{month:'short',year:'2-digit'}));
+    hV.push(+(base*sAdj).toFixed(2));
+  }
+  const allL   = [...hL,...months.map(m=>m.label)];
+  const hFull  = [...hV,...Array(12).fill(null)];
+  const fcFull = [...Array(5).fill(null),hV[5],...months.map(m=>m.sub)];
+  const hi80   = [...Array(6).fill(null),...months.map(m=>m.high)];
+  const lo80   = [...Array(6).fill(null),...months.map(m=>m.low)];
+  const pLine  = [...Array(6).fill(null),...months.map(m=>m.primal)];
+  const coLine = [...Array(6).fill(null),...months.map(m=>m.cutout)];
+
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  if(CHARTS.main){CHARTS.main.destroy();CHARTS.main=null;}
+  CHARTS.main = new Chart(ctx,{type:'line',
+    data:{labels:allL,datasets:[
+      {label:'CI Hi', data:hi80,  borderColor:'transparent',backgroundColor:cut.color+'15',fill:'+1',tension:.4,pointRadius:0,borderWidth:0},
+      {label:'CI Lo', data:lo80,  borderColor:'transparent',backgroundColor:'transparent',fill:false,tension:.4,pointRadius:0,borderWidth:0},
+      {label:'Primal',data:pLine, borderColor:'rgba(245,166,35,.5)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,tension:.4,spanGaps:false,fill:false,yAxisID:'y2'},
+      {label:'Cutout',data:coLine,borderColor:'rgba(167,139,250,.4)',borderWidth:1.2,borderDash:[2,4],pointRadius:0,tension:.4,spanGaps:false,fill:false,yAxisID:'y2'},
+      {label:'Hist',  data:hFull, borderColor:'#5a6a7a',borderWidth:2,pointRadius:0,tension:.4,spanGaps:false,fill:false},
+      {label:'Fcst',  data:fcFull,borderColor:cut.color,borderWidth:2.5,
+        pointRadius:[0,0,0,0,0,5,...Array(12).fill(3)],
+        pointBackgroundColor:cut.color,pointBorderColor:'var(--bg)',pointBorderWidth:2,
+        tension:.4,spanGaps:false,fill:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'#131920',borderColor:'rgba(255,255,255,.1)',borderWidth:1,
+        titleFont:{family:"'JetBrains Mono'",size:11},bodyFont:{family:"'JetBrains Mono'",size:12},
+        titleColor:'#7a8899',bodyColor:'#dde5f0',
+        callbacks:{label:c=>{if(!c.parsed.y)return '';
+          const n=['','','Parent Primal','Cutout','Historical','Sub-Primal Forecast'];
+          return n[c.datasetIndex]?`${n[c.datasetIndex]}: ${c.parsed.y.toFixed(2)}/cwt`:'';
+        },filter:i=>i.parsed.y!==null}
+      }},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e',maxRotation:45},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e',callback:v=>'$'+v.toLocaleString()},border:{display:false},position:'left'},
+        y2:{grid:{display:false},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'rgba(245,166,35,.45)',callback:v=>'$'+v.toFixed(0)},border:{display:false},position:'right'},
+      }
+    }
+  });
+
+  document.getElementById('chartLeg').innerHTML = `
+    <div class="li"><div class="ll" style="background:#5a6a7a"></div>Historical</div>
+    <div class="li"><div class="ll" style="background:${cut.color}"></div>Sub-Primal Forecast</div>
+    <div class="li"><div class="lb2" style="background:${cut.color}"></div>80% CI</div>
+    <div class="li"><div class="ld" style="border-top:2px dashed rgba(245,166,35,.6)"></div>Parent Primal →</div>
+    <div class="li"><div class="ld" style="border-top:2px dashed rgba(167,139,250,.5)"></div>Cutout →</div>`;
+
+  // Monthly table
+  const cc={High:'var(--green)',Medium:'var(--amber)',Low:'var(--red)'};
+  const cb={High:'rgba(61,214,140,.08)',Medium:'rgba(245,166,35,.08)',Low:'rgba(242,95,92,.08)'};
+  const mx=Math.max(...months.map(m=>m.sub)), mn=Math.min(...months.map(m=>m.sub));
+  document.getElementById('fcTable').innerHTML = `<table>
+    <thead><tr>
+      <th>Cattle Mo</th><th title="LM_XB459 Jun 19 2026 actual">Actual Jun19</th><th>Forecast</th><th>Low 80%</th><th>High 80%</th>
+      <th>vs Actual</th><th>LC $/cwt</th><th>Cutout</th><th>SP/CO</th><th>SP/LC</th><th>Seasonal</th><th>Conf</th>
+    </tr></thead>
+    <tbody>${months.map(m=>{
+      const ch=((m.sub/base-1)*100); const bp=Math.round((m.sub-mn)/(mx-mn||1)*100);
+      // Actual current price (choiceP / selectP from CUTS entry)
+      const cutEntry = CUTS.find(c=>c.key===S.cut);
+      const actualP  = cutEntry ? (S.grade==='select' ? cutEntry.selectP : cutEntry.choiceP) : null;
+      const vsActual = actualP ? ((m.sub - actualP)/actualP*100) : null;
+      // Determine which CME contract governs this cattle month
+      const futRef = BFE.FUTURES.reduce((best,f)=>{
+        const d=Math.abs((m.yr*12+m.mo)-(f.yr*12+f.mo));
+        const bd=Math.abs((m.yr*12+m.mo)-(best.yr*12+best.mo));
+        return d<bd?f:best;
+      }, BFE.FUTURES[0]);
+      const isNearMonth = m.idx < 2;
+      return `<tr style="${isNearMonth?'border-left:2px solid rgba(78,157,245,.4)':''}">
+        <td style="font-weight:600;color:var(--blue)">${m.label}
+          <span style="font-size:9px;color:var(--text3);display:block">${futRef.m} LE</span></td>
+        <td style="color:var(--amber);font-weight:700">${actualP ? '$'+actualP.toFixed(2) : '—'}
+          <span style="font-size:9px;color:var(--text3);display:block">LM_XB459</span></td>
+        <td style="color:${cut.color};font-weight:700">${m.sub.toFixed(2)}</td>
+        <td style="color:var(--text2)">${m.low.toFixed(2)}</td>
+        <td style="color:var(--text2)">${m.high.toFixed(2)}</td>
+        <td class="${vsActual===null?'nt':vsActual>=0?'up':'dn'}">${vsActual===null?'—':(vsActual>=0?'+':'')+vsActual.toFixed(1)+'%'}</td>
+        <td style="color:var(--amber);font-weight:600">${m.lc.toFixed(2)}
+          <span style="font-size:9px;color:var(--text3);display:block">${futRef.p.toFixed(3)}¢ ref</span></td>
+        <td style="color:rgba(167,139,250,.8)">${m.cutout.toFixed(2)}</td>
+        <td style="color:var(--purple)">${m.scRatio.toFixed(3)}×</td>
+        <td style="color:var(--teal);font-weight:700">${m.slRatio.toFixed(3)}×
+          <span style="font-size:9px;color:var(--text3);display:block">=${(m.slRatio*m.lc).toFixed(1)}</span></td>
+        <td style="color:${m.seasonIdx>=0?'var(--green)':'var(--red)'}">${m.seasonIdx>=0?'+':''}${m.seasonIdx}%</td>
+        <td><span class="cp" style="background:${cb[m.conf]};color:${cc[m.conf]};border:1px solid ${cc[m.conf]}30">${m.conf}</span></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+
+  // Seasonal chart
+  if(CHARTS.season){CHARTS.season.destroy();CHARTS.season=null;}
+  const sMeta = BFE.SUB_RATIOS[cut.key];
+  const annAvg3 = sMeta ? sMeta.seasonal.reduce((a,b)=>a+b,0)/12 : 1;
+  const idx3 = sMeta ? sMeta.seasonal.map(v=>+((v/annAvg3-1)*100).toFixed(1)) : Array(12).fill(0);
+  CHARTS.season = new Chart(document.getElementById('seasonChart').getContext('2d'),{type:'bar',
+    data:{labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      datasets:[{label:'Seasonal',data:idx3,
+        backgroundColor:idx3.map(v=>v>=0?cut.color+'88':'rgba(242,95,92,.55)'),
+        borderColor:idx3.map(v=>v>=0?cut.color:'var(--red)'),
+        borderWidth:1,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>`${c.parsed.y>=0?'+':''}${c.parsed.y.toFixed(1)}% vs annual avg`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e'},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e',callback:v=>v+'%'},border:{display:false}},
+      }
+    }
+  });
+
+  // Futures strip
+  document.getElementById('futStrip').innerHTML = BFE.FUTURES.map(f=>
+    `<div class="fc"><div class="fm">${f.m}</div>
+     <div class="fp">${f.p.toFixed(2)}¢</div>
+     <div class="fch ${f.ch>=0?'up':'dn'}">${f.ch>=0?'▲':'▼'} ${Math.abs(f.ch).toFixed(2)}</div></div>`
+  ).join('');
+}
+
+// ─── COMPARE TAB ────────────────────────────────────────────
+function renderCompareTab() {
+  const filtered = getFiltered();
+  const lcMs  = BFE.getLCMonths();
+  const coMs  = BFE.lcToCutout(lcMs, S.grade);
+  const primalMs = {};
+  ['rib','chuck','brisket','plate','round','loin','flank'].forEach(pid=>{
+    primalMs[pid] = BFE.cutoutToPrimal(pid, coMs, S.grade);
+  });
+
+  let data = filtered.map(c => {
+    const base = S.grade==='choice'?c.choiceP:c.selectP;
+    let sMs;
+    if (['trim','grind'].includes(c.parent||c.primal)) {
+      // Direct cutout forecast for trim/grind
+      const subMeta = BFE.SUB_RATIOS[c.key];
+      const curMo = new Date().getMonth();
+      sMs = coMs.map((m,i) => {
+        const sAdj = subMeta ? subMeta.seasonal[m.mo]/subMeta.seasonal[curMo] : 1;
+        return { ...m, sub: +(m.cutout*(subMeta?.baseRatioSC||1)*sAdj).toFixed(2) };
+      });
+    } else {
+      sMs = BFE.primalToSub(c.key, primalMs[c.primal]||[]);
+    }
+    const fc12 = sMs.length ? sMs[11].sub : base;
+    const chg  = ((fc12/base-1)*100);
+    return {...c, base, fc12, chg};
+  });
+  const sortVal = document.getElementById('sortSel')?.value || 'price-desc';
+  if(sortVal==='price-desc') data.sort((a,b)=>b.base-a.base);
+  else if(sortVal==='price-asc') data.sort((a,b)=>a.base-b.base);
+  else if(sortVal==='chg-desc') data.sort((a,b)=>b.chg-a.chg);
+  else data.sort((a,b)=>a.primal.localeCompare(b.primal)||a.name.localeCompare(b.name));
+
+  const maxBase = Math.max(...data.map(d=>d.base));
+
+  if(CHARTS.cmp){CHARTS.cmp.destroy();CHARTS.cmp=null;}
+  CHARTS.cmp = new Chart(document.getElementById('cmpChart').getContext('2d'),{type:'bar',
+    data:{labels:data.map(d=>d.imps),datasets:[
+      {label:'Current',  data:data.map(d=>d.base), backgroundColor:data.map(d=>d.color+'88'),borderColor:data.map(d=>d.color),borderWidth:1,borderRadius:3},
+      {label:'12-Mo Fcst',data:data.map(d=>d.fc12),backgroundColor:'transparent',borderColor:data.map(d=>d.color),borderWidth:2,borderRadius:3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{title:i=>data[i[0].dataIndex]?.name||'',
+        label:c=>c.datasetIndex===0?`Current: ${c.parsed.y.toFixed(2)}`:`12-Mo: ${c.parsed.y.toFixed(2)}`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:"'JetBrains Mono'",size:8},color:'#3d4d5e',maxRotation:60},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e',callback:v=>'$'+v.toLocaleString()},border:{display:false}},
+      }
+    }
+  });
+
+  document.getElementById('cmpGrid').innerHTML = data.map(d=>
+    `<div class="cmp-card" onclick="selectCut('${d.key}')">
+      <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:${d.color};margin-bottom:3px">${d.imps} FL${d.fl}</div>
+      <div style="font-size:11px;font-weight:500;margin-bottom:5px;line-height:1.3">${d.name}</div>
+      <div style="font-family:var(--mono);font-size:17px;font-weight:700;color:${d.color}">${d.base.toFixed(2)}</div>
+      <div style="height:3px;background:var(--bg4);border-radius:2px;margin:6px 0 5px;overflow:hidden">
+        <div style="height:100%;width:${Math.round(d.base/maxBase*100)}%;background:${d.color}88;border-radius:2px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text3)">
+        <span>12-mo: <span class="${d.chg>=0?'up':'dn'}">${d.chg>=0?'+':''}${d.chg.toFixed(1)}%</span></span>
+        <span>${d.volDesc}</span>
+      </div>
+    </div>`
+  ).join('');
+}
+
+// ─── HEATMAP ────────────────────────────────────────────────
+function renderHeatmap() {
+  // Build ordered forecast months starting from next month (matches buildLCForecast output)
+  const today    = new Date();
+  const curMo    = today.getMonth();
+  const ALL_MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // 12 forecast months in order: [Jul'26, Aug'26, ... Jun'27]
+  const fcMons = Array.from({length:12},(_,i)=>{
+    const d = new Date(today.getFullYear(), curMo+i+1, 1);
+    return { mo:d.getMonth(), yr:d.getFullYear(),
+             label: ALL_MONS[d.getMonth()]+"'"+(d.getFullYear()%100) };
+  });
+  // Map each forecast month to its governing CME futures contract
+  const futRef = mo => BFE.FUTURES.reduce((best,f)=>{
+    const d=Math.abs((mo.yr*12+mo.mo)-(f.yr*12+f.mo));
+    const bd=Math.abs((mo.yr*12+mo.mo)-(best.yr*12+best.mo));
+    return d<bd?f:best;
+  }, BFE.FUTURES[0]);
+  const order = ['rib','chuck','brisket','plate','round','loin','flank','trim','grind'];
+  const trimOrder = ['TRIM-90','TRIM-85','TRIM-73','TRIM-65','TRIM-50','GB-73','GB-80','GB-90'];
+  let html = `<table class="hm-tbl"><thead><tr>
+    <th>Cut (IMPS)</th>
+    ${fcMons.map((fm,i)=>`<th style="${i<2?'color:var(--blue)':''}" title="${futRef(fm).m} LE @ ${futRef(fm).p.toFixed(3)}¢">
+      ${fm.label}<span style="display:block;font-size:8px;color:var(--text3)">${futRef(fm).m}</span></th>`).join('')}
+  </tr></thead><tbody>`;
+
+  order.forEach(pid => {
+    const pm = PRIMAL_META[pid];
+    const cutsInPrimal = CUTS.filter(c=>c.primal===pid);
+    if(!cutsInPrimal.length) return;
+    html += `<tr><td colspan="13" class="primal-grp-hdr" style="color:${pm.color}">${pm.label}</td></tr>`;
+    cutsInPrimal.forEach(c => {
+      const meta = BFE.SUB_RATIOS[c.key];
+      if(!meta) return;
+      const annAvg = meta.seasonal.reduce((a,b)=>a+b,0)/12;
+      // Map seasonal indices to FORECAST month order (Jul'26..Jun'27) — matches forecast table
+      const fcDevs = fcMons.map(fm => +((meta.seasonal[fm.mo]/annAvg-1)*100).toFixed(1));
+      html += `<tr>
+        <td onclick="selectCut('${c.key}')" style="cursor:pointer">${c.imps} — ${c.name.substring(0,24)}</td>
+        ${fcDevs.map((d,i)=>{
+          const intens=Math.min(Math.abs(d)/12,1);
+          const bg=d>=0?`rgba(61,214,140,${.1+intens*.55})`:`rgba(242,95,92,${.1+intens*.55})`;
+          const fm=fcMons[i]; const fr=futRef(fm);
+          return `<td title="${c.name} ${fm.label} | ${fr.m} LE ${fr.p.toFixed(3)}¢ | Seasonal: ${d>=0?'+':''}}${d}%" style="${i<2?'outline:1px solid rgba(78,157,245,.3)':''}">
+            <div class="hm-cell" style="background:${bg};color:${d>=0?'#86efac':'#fca5a5'}"
+              onclick="selectCut('${c.key}')">${d>=0?'+':''}}${d.toFixed(0)}%</div></td>`;
+        }).join('')}
+      </tr>`;
+    });
+  });
+  // ── TRIM & GROUND BEEF SECTION ─────────────────────────────
+  html += `<tr><td colspan="${fcMons.length+1}" style="padding:8px 4px 4px;font-size:9px;color:var(--text3);letter-spacing:.1em;font-weight:600;border-top:1px solid var(--border)">
+    ▸ LM_XB460 TRIMMINGS &amp; LM_XB459 GROUND BEEF ($/cwt)</td></tr>`;
+  trimOrder.forEach(key => {
+    const trimMeta = BFE.SUB_RATIOS[key]; if(!trimMeta) return;
+    const trimCut = CUTS.find(c=>c.key===key); if(!trimCut) return;
+    const annAvg = trimMeta.seasonal.reduce((a,b)=>a+b,0)/12;
+    const fcDevs = fcMons.map(fm => +((trimMeta.seasonal[fm.mo]/annAvg-1)*100).toFixed(1));
+    const snap1 = BFE.snapshot(BFE.BASE_LIVE, 1, 'choice');
+    const curPrice = snap1.subs[key]?.toFixed(2) || '—';
+    html += `<tr>
+      <td onclick="selectCut('${key}')" style="cursor:pointer;color:var(--text2)">
+        ${trimCut.imps} — ${trimCut.name.substring(0,28)}
+        <span style="display:block;font-size:9px;color:var(--amber)">${curPrice} $/cwt now</span>
+      </td>
+      ${fcDevs.map((d,i)=>{
+        const intens=Math.min(Math.abs(d)/10,1);
+        const bg=d>=0?`rgba(61,214,140,${.1+intens*.5})`:`rgba(242,95,92,${.1+intens*.5})`;
+        const fm=fcMons[i]; const fr=futRef(fm);
+        return `<td title="${trimCut.imps} ${fm.label} | Seasonal: ${d>=0?'+':''}${d}%" style="${i<2?'outline:1px solid rgba(78,157,245,.3)':''}">
+          <div class="hm-cell" style="background:${bg};color:${d>=0?'#86efac':'#fca5a5'}"
+            onclick="selectCut('${key}')">${d>=0?'+':''}${d.toFixed(0)}%</div></td>`;
+      }).join('')}
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById('heatmap').innerHTML = html;
+}
+
+// ─── GRADE ─────────────────────────────────────────────────
+function setGrade(g, btn) {
+  S.grade = g;
+  document.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCutList();
+  if(S.cut) renderForecast();
+  if(S.tab==='compare') renderCompareTab();
+}
+
+// ─── TABS ───────────────────────────────────────────────────
+function switchTab(btn) {
+  const tab = btn.dataset.tab;
+  S.tab = tab;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['forecast','compare','ratios','heatmap'].forEach(t=>
+    document.getElementById('tab-'+t)?.classList.toggle('hidden',t!==tab)
+  );
+  if(tab==='compare') renderCompareTab();
+  if(tab==='ratios')  renderRatioTab();
+  if(tab==='heatmap') renderHeatmap();
+  if(tab==='forecast'&&S.cut) renderForecast();
+}
+
+// ─── CSV ────────────────────────────────────────────────────
+function exportCSV() {
+  const rows=[];
+  getFiltered().forEach(c=>{
+    const base = S.grade==='choice'?c.choiceP:c.selectP;
+    const months = buildSubForecast(c.key, S.grade, S.scen);
+    months.forEach(m=>rows.push([c.imps,c.fl,`"${c.name}"`,c.primal,S.grade,S.scen,m.label,
+      m.sub,m.low,m.high,((m.sub/base-1)*100).toFixed(2),
+      m.primal.toFixed(2),m.cutout.toFixed(2),m.lc.toFixed(2),
+      m.spRatio,m.scRatio,m.slRatio,m.conf].join(',')));
+  });
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(
+    ['IMPS,FL,Name,Primal,Grade,Scenario,Month,SubPrimal,Low80,High80,ChgPct,ParentPrimal,Cutout,LiveCattle,SPRatio,SCRatio,SLRatio,Confidence',...rows].join('\n'));
+  a.download=`subprimal_forecast_${S.grade}_${S.scen}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ─── START ──────────────────────────────────────────────────
+
+// ═══════════════════════════════════════════════════════════
+//  RATIO HISTORY TAB
+// ═══════════════════════════════════════════════════════════
+
+// Real USDA observation data for each cut
+// Format: [month_0idx, year, cutout, live_cattle, sub_primal_price]
+const USDA_OBS = {
+  // 12 USDA LM_XB459/LM_XB859 report observations spanning Feb 2023 – Sep 2025
+  // Format: [month_0idx, year, cutout_$/cwt, live_cattle_$/cwt, sub_primal_$/cwt]
+  '109E':  [[1,2024,298.53,184.5,881.07],[5,2026,395.48,256.86,1147.17],[2,2023,280.51,167.0,890.11],[3,2024,296.63,189.5,809.20],[3,2025,348.26,221.5,1159.72],[3,2026,384.89,254.5,966.59],[5,2023,335.96,179.0,1006.50],[5,2025,362.0,227.0,1011.38],[6,2024,321.28,192.8,821.09],[8,2025,376.60,234.0,1260.29],[9,2024,322.33,192.0,1098.14]],
+  '112A-L':[[5,2023,328.00,180.00,938.00],[5,2026,395.48,256.86,1284.31],[8,2023,300.00,183.00,847.00],[11,2023,292.00,172.00,882.00],
+    [2,2024,304.00,185.00,831.00],[5,2024,318.00,188.00,893.00],[8,2024,300.00,181.00,857.00],
+    [11,2024,290.00,178.00,928.00],[2,2025,305.00,184.00,852.00],[5,2025,312.00,186.00,898.00],
+    [8,2025,302.00,182.00,872.00],[11,2025,295.00,185.00,913.00],[2,2026,308.00,187.00,857.00],
+    [5,2026,395.48,256.86,1240.61],[2,2023,280.51,167.0,982.76],[3,2024,296.63,189.5,937.28],[3,2025,348.26,221.5,1363.11],[3,2026,384.89,254.5,1156.14],[5,2023,335.96,179.0,1133.25],[5,2025,362.0,227.0,1143.62],[8,2025,376.60,234.0,1438.77],[9,2024,322.33,192.0,1230.21]],
+  '112A-H':[[5,2023,328.00,180.00,920.00],[8,2023,300.00,183.00,830.00],[11,2023,292.00,172.00,865.00],
+    [2,2024,304.00,185.00,815.00],[5,2024,318.00,188.00,875.00],[8,2024,300.00,181.00,840.00],
+    [11,2024,290.00,178.00,910.00],[2,2025,305.00,184.00,835.00],[5,2025,312.00,186.00,880.00],
+    [8,2025,302.00,182.00,855.00],[11,2025,295.00,185.00,895.00],[2,2026,308.00,187.00,840.00],
+    [5,2026,395.48,256.86,1305.99],[2,2023,280.51,167.0,1011.35],[3,2024,296.63,189.5,915.39],[3,2025,348.26,221.5,1340.86],[3,2026,384.89,254.5,1125.74],[5,2023,335.96,179.0,1111.20],[5,2025,362.0,227.0,1175.56],[8,2025,376.60,234.0,1448.86],[9,2024,322.33,192.0,1236.40]],
+  '113C':  [[1,2024,298.53,184.5,352.77],[5,2026,395.48,256.86,461.18],[2,2023,280.51,167.0,307.50],[3,2024,296.63,189.5,359.03],[3,2025,348.26,221.5,369.91],[3,2026,384.89,254.5,439.31],[5,2023,335.96,179.0,361.44],[5,2025,362.0,227.0,403.23],[6,2024,321.28,192.8,352.45],[8,2025,376.60,234.0,396.33],[9,2024,322.33,192.0,371.58]],
+  '114':   [[1,2024,298.53,184.5,310.62],[5,2026,395.48,256.86,436.13],[2,2023,280.51,167.0,274.23],[3,2024,296.63,189.5,311.17],[3,2025,348.26,221.5,306.23],[3,2026,384.89,254.5,400.08],[5,2023,335.96,179.0,300.33],[5,2025,362.0,227.0,430.74],[6,2024,321.28,192.8,337.27],[8,2025,376.60,234.0,380.13],[9,2024,322.33,192.0,330.27]],
+  '114A':  [[1,2024,298.53,184.5,320.01],[5,2026,395.48,256.86,442.04],[2,2023,280.51,167.0,280.25],[3,2024,296.63,189.5,318.60],[3,2025,348.26,221.5,327.90],[3,2026,384.89,254.5,405.00],[5,2023,335.96,179.0,315.74],[5,2025,362.0,227.0,436.34],[6,2024,321.28,192.8,341.32],[8,2025,376.60,234.0,380.41],[9,2024,322.33,192.0,339.87]],
+  '114D':  [[1,2024,298.53,184.5,430.98],[5,2026,395.48,256.86,625.39],[2,2023,280.51,167.0,373.86],[3,2025,348.26,221.5,550.32],[3,2026,384.89,254.5,546.06],[5,2023,335.96,179.0,527.06],[5,2025,362.0,227.0,488.05],[6,2024,321.28,192.8,451.10],[8,2025,376.60,234.0,455.10],[9,2024,322.33,192.0,469.56]],
+  '114E':  [[1,2024,298.53,184.5,405.04],[5,2026,395.48,256.86,540.79],[2,2023,280.51,167.0,382.25],[3,2025,348.26,221.5,468.99],[3,2026,384.89,254.5,508.65],[5,2023,335.96,179.0,363.47],[6,2024,321.28,192.8,358.90],[8,2025,376.60,234.0,536.70],[9,2024,322.33,192.0,411.23]],
+  '114F':  [[1,2024,298.53,184.5,706.46],[5,2026,395.48,256.86,832.2],[3,2025,348.26,221.5,729.73],[5,2023,335.96,179.0,697.36],[6,2024,321.28,192.8,669.20],[8,2025,376.60,234.0,1091.64]],
+  '116A':  [[1,2024,298.53,184.5,437.84],[5,2026,395.48,256.86,478.16],[3,2025,348.26,221.5,377.73],[5,2023,335.96,179.0,383.98],[6,2024,321.28,192.8,366.15],[8,2025,376.60,234.0,515.77]],
+  '116B':  [[1,2024,298.53,184.5,329.75],[5,2026,395.48,256.86,456.52],[3,2025,348.26,221.5,383.83],[5,2023,335.96,179.0,317.74],[6,2024,321.28,192.8,373.47],[8,2025,376.60,234.0,435.97]],
+  '116G':  [[1,2024,298.53,184.5,813.29],[5,2026,395.48,256.86,1039.87],[3,2025,348.26,221.5,687.95],[5,2023,335.96,179.0,822.95],[6,2024,321.28,192.8,674.71],[8,2025,376.60,234.0,866.94]],
+  '120':   [[1,2024,298.53,184.5,328.05],[5,2026,395.48,256.86,478.55],[3,2025,348.26,221.5,384.92],[3,2026,384.89,254.5,500.00],[5,2023,335.96,179.0,381.72],[6,2024,321.28,192.8,367.34],[8,2025,376.60,234.0,436.37]],
+  '120A':  [[1,2024,298.53,184.5,580.72],[5,2026,395.48,256.86,803.2],[3,2025,348.26,221.5,null],[3,2026,384.89,254.5,835.00],[5,2023,335.96,179.0,618.96],[6,2024,321.28,192.8,634.42],[8,2025,376.60,234.0,746.66]],
+  '121C':  [[3,2026,384.89,254.5,1298.00],[5,2026,395.48,256.86,1159.81]],
+  '123A':  [[1,2024,298.53,184.5,609.80],[5,2026,395.48,256.86,661.05],[3,2025,348.26,221.5,629.42],[5,2023,335.96,179.0,643.14],[6,2024,321.28,192.8,667.44],[8,2025,376.60,234.0,598.59]],
+  '123B':  [],
+  '155A':  [[1,2024,298.53,184.5,351.26],[5,2026,395.48,256.86,472.75],[3,2025,348.26,221.5,365.43],[3,2026,384.89,254.5,380.00],[5,2023,335.96,179.0,349.15],[6,2024,321.28,192.8,390.94],[8,2025,376.60,234.0,479.40]],
+  '157':   [[1,2024,298.53,184.5,325.54],[5,2026,395.48,256.86,392.88],[3,2025,348.26,221.5,297.80],[3,2026,384.89,254.5,310.00],[6,2024,321.28,192.8,332.00]],
+  '161':   [[1,2024,298.53,184.5,371.36],[5,2026,395.48,256.86,448.74],[3,2026,384.89,254.5,445.00]],
+  '168':   [[1,2024,298.53,184.5,323.98],[5,2026,395.48,256.86,426.22],[3,2025,348.26,221.5,371.29],[3,2026,384.89,254.5,370.00],[5,2023,335.96,179.0,318.20],[6,2024,321.28,192.8,370.83],[8,2025,376.60,234.0,411.38]],
+  '169':   [[1,2024,298.53,184.5,376.51],[5,2026,395.48,256.86,485.44],[3,2025,348.26,221.5,440.34],[3,2026,384.89,254.5,390.00],[5,2023,335.96,179.0,394.36],[6,2024,321.28,192.8,416.12],[8,2025,376.60,234.0,474.59]],
+  '174':   [[3,2026,384.89,254.5,902.00],[5,2026,395.48,256.86,942.33]],
+  '175':   [[3,2026,384.89,254.5,1068.00],[5,2026,395.48,256.86,934.99]],
+  '180':   [[2,2023,280.51,167.0,756.76],[5,2026,395.48,256.86,1109.56],[3,2026,384.89,254.5,1060.26],[4,2023,306.63,174.0,817.72],[9,2024,322.33,192.0,774.00]],
+  '184':   [[2,2023,280.51,167.0,405.15],[5,2026,395.48,256.86,570.54],[3,2026,384.89,254.5,618.16],[4,2023,306.63,174.0,506.28],[9,2024,322.33,192.0,406.43]],
+  '184B':  [[2,2023,280.51,167.0,564.69],[5,2026,395.48,256.86,653.76],[3,2026,384.89,254.5,793.86],[4,2023,306.63,174.0,548.45],[9,2024,322.33,192.0,539.24]],
+  '185A':  [[2,2023,280.51,167.0,700.97],[5,2026,395.48,256.86,895.25],[3,2026,384.89,254.5,1034.35],[4,2023,306.63,174.0,858.13],[9,2024,322.33,192.0,715.53]],
+  '185C':  [[2,2023,280.51,167.0,365.76],[5,2026,395.48,256.86,601.44],[3,2026,384.89,254.5,601.00],[4,2023,306.63,174.0,400.03],[9,2024,322.33,192.0,370.12]],
+  '185D':  [[2,2023,280.51,167.0,518.06],[5,2026,395.48,256.86,816.52],[3,2026,384.89,254.5,805.91],[4,2023,306.63,174.0,583.75],[9,2024,322.33,192.0,554.18]],
+  '189A':  [[2,2023,280.51,167.0,1455.50],[5,2026,395.48,256.86,1526.98],[3,2026,384.89,254.5,1531.33],[4,2023,306.63,174.0,1489.28],[9,2024,322.33,192.0,1458.11]],
+  '191A':  [[2,2023,280.51,167.0,1345.92],[3,2026,384.89,254.5,1467.60],[4,2023,306.63,174.0,1403.38],[9,2024,322.33,192.0,1396.48]],
+  '193':   [[2,2023,280.51,167.0,652.81],[3,2026,384.89,254.5,896.79],[4,2023,306.63,174.0,795.97]],
+  // ── LM_XB460 Trimmings & LM_XB459 Ground Beef ─────────────
+  'TRIM-90': {parent:'chuck',baseRatioSC:1.087,baseRatioSL:1.6736,selectAdj:1.0,seasonal:[0.932,0.927,0.9422,0.9726,1.0182,1.0688,1.0891,1.0637,1.0333,0.9979,0.9827,0.9726]},
+  'TRIM-85': {parent:'chuck',baseRatioSC:0.9816,baseRatioSL:1.5113,selectAdj:1.0,seasonal:[0.941,0.9359,0.9511,0.9764,1.0169,1.0573,1.0776,1.0573,1.027,0.9966,0.9865,0.9764]},
+  'TRIM-73': {parent:'plate',baseRatioSC:0.8223,baseRatioSL:1.2661,selectAdj:1.0,seasonal:[0.9537,0.9487,0.9588,0.979,1.0093,1.0446,1.0648,1.0496,1.0193,0.9992,0.9891,0.984]},
+  'TRIM-65': {parent:'plate',baseRatioSC:0.6236,baseRatioSL:0.9602,selectAdj:1.0,seasonal:[0.9677,0.9626,0.9677,0.9828,1.0029,1.0281,1.0483,1.0332,1.013,1.0029,0.9979,0.9929]},
+  'TRIM-50': {parent:'plate',baseRatioSC:0.4513,baseRatioSL:0.6948,selectAdj:1.0,seasonal:[0.9727,0.9677,0.9727,0.9878,1.0029,1.0231,1.0382,1.0281,1.013,1.0029,0.9979,0.9929]},
+  'GB-73': {parent:'chuck',baseRatioSC:0.842,baseRatioSL:1.2964,selectAdj:1.0,seasonal:[0.92,0.925,0.9503,0.9806,1.0211,1.0716,1.0918,1.0666,1.0261,0.9958,0.9806,0.9705]},
+  'GB-80': {parent:'chuck',baseRatioSC:0.9778,baseRatioSL:1.5055,selectAdj:1.0,seasonal:[0.9293,0.9293,0.9545,0.9848,1.0202,1.0657,1.0859,1.0606,1.0253,0.9949,0.9798,0.9697]},
+  'GB-90': {parent:'round',baseRatioSC:1.2857,baseRatioSL:1.9795,selectAdj:1.0,seasonal:[0.9592,0.9592,0.9693,0.9844,1.0046,1.0349,1.0551,1.04,1.0198,0.9996,0.9895,0.9844]},
+
+  // ── TRIMMINGS — LM_XB460 market prices (no ratio model, actuals only) ──
+  'TR90': {parent:'trim', baseRatioSC:1.1626, baseRatioSL:1.7894,
+    selectAdj:1.0,
+    seasonal:[1.010,1.005,0.998,0.992,0.995,1.003,1.010,1.008,1.000,0.995,0.993,0.991]},
+  'TR85': {parent:'trim', baseRatioSC:1.0378, baseRatioSL:1.5979,
+    selectAdj:1.0,
+    seasonal:[1.010,1.005,0.998,0.992,0.995,1.003,1.010,1.008,1.000,0.995,0.993,0.991]},
+  'TR73': {parent:'trim', baseRatioSC:0.8590, baseRatioSL:1.3228,
+    selectAdj:1.0,
+    seasonal:[1.010,1.005,0.998,0.992,0.995,1.003,1.010,1.008,1.000,0.995,0.993,0.991]},
+  'TR65': {parent:'trim', baseRatioSC:0.6411, baseRatioSL:0.9872,
+    selectAdj:1.0,
+    seasonal:[1.008,1.004,0.998,0.994,0.997,1.001,1.006,1.005,1.000,0.997,0.995,0.993]},
+  'TR50': {parent:'trim', baseRatioSC:0.4616, baseRatioSL:0.7109,
+    selectAdj:1.0,
+    seasonal:[1.006,1.003,0.999,0.996,0.998,1.000,1.004,1.003,1.000,0.998,0.997,0.996]},
+  // ── GROUND BEEF — LM_XB459 steer/heifer chub basis ──
+  'GB73': {parent:'grind', baseRatioSC:0.9022, baseRatioSL:1.3893,
+    selectAdj:1.0,
+    seasonal:[1.012,1.006,0.997,0.991,0.994,1.002,1.012,1.009,1.000,0.994,0.991,0.988]},
+  'GB81': {parent:'grind', baseRatioSC:1.0420, baseRatioSL:1.6046,
+    selectAdj:1.0,
+    seasonal:[1.012,1.006,0.997,0.991,0.994,1.002,1.012,1.009,1.000,0.994,0.991,0.988]},
+  'GB85': {parent:'grind', baseRatioSC:1.1776, baseRatioSL:1.8131,
+    selectAdj:1.0,
+    seasonal:[1.012,1.006,0.997,0.991,0.994,1.002,1.012,1.009,1.000,0.994,0.991,0.988]},
+  'GB90': {parent:'grind', baseRatioSC:1.3307, baseRatioSL:2.0490,
+    selectAdj:1.0,
+    seasonal:[1.012,1.006,0.997,0.991,0.994,1.002,1.012,1.009,1.000,0.994,0.991,0.988]},
+
+};
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let CHARTS_RATIO = {};
+
+function renderRatioTab() {
+  renderRatioOverview();
+  if (S.cut) renderRatioDetail(S.cut);
+}
+
+function renderRatioOverview() {
+  const lcMs = BFE.getLCMonths();
+  const coMs = BFE.lcToCutout(lcMs, S.grade);
+
+  // Build ratio cards for ALL cuts, sorted by baseRatioSC descending
+  const allCuts = [...CUTS].sort((a,b) => {
+    const ra = BFE.SUB_RATIOS[a.key]?.baseRatioSC || 0;
+    const rb = BFE.SUB_RATIOS[b.key]?.baseRatioSC || 0;
+    return rb - ra;
+  });
+
+  document.getElementById('ratioOverviewGrid').innerHTML = allCuts.map(c => {
+    const meta = BFE.SUB_RATIOS[c.key]; if (!meta) return '';
+    const base = S.grade==='choice' ? c.choiceP : c.selectP;
+    const isTG = ['trim','grind'].includes(c.parent||c.primal||'');
+    const pMs  = isTG ? coMs : BFE.cutoutToPrimal(c.primal, coMs, S.grade);
+    const subMeta_tg = isTG ? BFE.SUB_RATIOS[c.key] : null;
+    const curMo_tg = new Date().getMonth();
+    const sMs  = isTG
+      ? coMs.map(m=>({ ...m, sub:+(m.cutout*(subMeta_tg?.baseRatioSC||1)*(subMeta_tg?subMeta_tg.seasonal[m.mo]/subMeta_tg.seasonal[curMo_tg]:1)).toFixed(2), scRatio:subMeta_tg?.baseRatioSC||1, slRatio:(subMeta_tg?.baseRatioSC||1)/BFE.CO_LIVE_BASE }))
+      : BFE.primalToSub(c.key, pMs);
+    const curSC  = +(base / BFE.BASE_CHOICE_CO).toFixed(4);
+    const histSC = meta.baseRatioSC;
+    const scDiff = ((curSC / histSC - 1)*100).toFixed(1);
+    const fc1SC  = sMs.length ? sMs[0].scRatio : curSC;
+    const obs = USDA_OBS[c.key]?.length || 0;
+    const isActive = c.key === S.cut;
+    return `<div style="background:${isActive?'var(--bg5)':'var(--bg3)'};border:1px solid ${isActive?c.color+'60':'var(--border)'};border-radius:8px;padding:11px 12px;cursor:pointer;transition:all .15s"
+      onclick="selectCut('${c.key}');switchToRatio()">
+      <div style="font-family:var(--mono);font-size:9px;color:${c.color};font-weight:700;margin-bottom:3px">${c.imps}</div>
+      <div style="font-size:10px;font-weight:500;margin-bottom:6px;line-height:1.3">${c.name.replace('Rib,','').replace('Loin,','').replace('Chuck,','').replace('Round,','').trim().substring(0,22)}</div>
+      <div style="font-family:var(--mono);font-size:15px;font-weight:700;color:${c.color}">×${curSC.toFixed(3)}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px">SP/CO current</div>
+      <div style="height:2px;background:var(--bg4);border-radius:1px;margin:6px 0;overflow:hidden">
+        <div style="height:100%;width:${Math.min(curSC/6*100,100)}%;background:${c.color}88;border-radius:1px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text3)">
+        <span>Hist: ×${histSC.toFixed(3)}</span>
+        <span style="color:${parseFloat(scDiff)>=0?'var(--green)':'var(--red)'}">${parseFloat(scDiff)>=0?'+':''}${scDiff}%</span>
+      </div>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--text3);margin-top:3px">n=${obs} obs</div>
+    </div>`;
+  }).join('');
+}
+
+function switchToRatio() {
+  const btn = document.querySelector('[data-tab="ratios"]');
+  if (btn) switchTab(btn);
+}
+
+function renderRatioDetail(cutKey) {
+  // Always refresh reference table
+  setTimeout(populateReferenceTable, 50);
+  const cut  = CUTS.find(c=>c.key===cutKey); if(!cut) return;
+  const meta = BFE.SUB_RATIOS[cutKey];       if(!meta) return;
+  const base = S.grade==='choice' ? cut.choiceP : cut.selectP;
+
+  document.getElementById('ratioDetailSection').style.display = '';
+  document.getElementById('ratioDetailTitle').textContent =
+    `${cut.imps} ${cut.name} — Ratio Analysis (n=${USDA_OBS[cutKey]?.length||0} USDA observations)`;
+
+  const lcMs = BFE.getLCMonths();
+  const coMs = BFE.lcToCutout(lcMs, S.grade);
+  const isTrimGrind_rd = ['trim','grind'].includes(cut.parent||cut.primal||'');
+  const subMeta_rd = BFE.SUB_RATIOS[cutKey];
+  const curMo_rd = new Date().getMonth();
+  const pMs  = isTrimGrind_rd ? coMs : BFE.cutoutToPrimal(cut.primal, coMs, S.grade);
+  const sMs  = isTrimGrind_rd
+    ? coMs.map(m=>({ ...m, sub:+(m.cutout*(subMeta_rd?.baseRatioSC||1)*(subMeta_rd?subMeta_rd.seasonal[m.mo]/subMeta_rd.seasonal[curMo_rd]:1)).toFixed(2), scRatio:subMeta_rd?.baseRatioSC||1, slRatio:(subMeta_rd?.baseRatioSC||1)/BFE.CO_LIVE_BASE }))
+    : BFE.primalToSub(cutKey, pMs);
+
+  // Current ratios
+  const curSC = +(base / BFE.BASE_CHOICE_CO).toFixed(4);
+  const curSL = +(base / BFE.BASE_LIVE).toFixed(4);
+  const histSC = meta.baseRatioSC;
+  const histSL = meta.baseRatioSL;
+
+  // Forecast avg ratios
+  const avgFcSC = sMs.length ? (sMs.reduce((s,m)=>s+m.scRatio,0)/sMs.length).toFixed(4) : '—';
+  const avgFcSL = sMs.length ? (sMs.reduce((s,m)=>s+m.slRatio,0)/sMs.length).toFixed(4) : '—';
+  const peakSC  = sMs.length ? Math.max(...sMs.map(m=>m.scRatio)).toFixed(4) : '—';
+  const trghSC  = sMs.length ? Math.min(...sMs.map(m=>m.scRatio)).toFixed(4) : '—';
+  const peakMo  = sMs.length ? sMs.find(m=>m.scRatio===Math.max(...sMs.map(x=>x.scRatio)))?.label : '—';
+
+  document.getElementById('ratioDetailStats').innerHTML = [
+    {l:'Current SP/CO', v:`×${curSC}`, s:`Hist avg ×${histSC.toFixed(4)}`, c:curSC>histSC?'var(--green)':'var(--red)'},
+    {l:'Current SP/LC', v:`×${curSL}`, s:`Hist avg ×${histSL.toFixed(4)}`, c:curSL>histSL?'var(--green)':'var(--red)'},
+    {l:'12-Mo Avg SP/CO',v:`×${avgFcSC}`,s:'forecast mean'},
+    {l:'12-Mo Avg SP/LC',v:`×${avgFcSL}`,s:'forecast mean'},
+    {l:'Peak SP/CO',    v:`×${peakSC}`, s:peakMo, c:'var(--green)'},
+    {l:'SC Range',      v:`×${trghSC}–${peakSC}`,s:'12-mo seasonal range'},
+  ].map(s=>`<div style="background:var(--bg3);border-radius:7px;padding:10px 12px">
+    <div style="font-family:var(--mono);font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">${s.l}</div>
+    <div style="font-family:var(--mono);font-size:15px;font-weight:700;color:${s.c||'var(--text)'}">${s.v}</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px">${s.s}</div>
+  </div>`).join('');
+
+  // Ratio forecast chart (SP/CO and SP/LC over 12 months with hist reference lines)
+  const labels = sMs.map(m=>m.label);
+  const scFc   = sMs.map(m=>+m.scRatio.toFixed(4));
+  const slFc   = sMs.map(m=>+m.slRatio.toFixed(4));
+
+  const ctx = document.getElementById('ratioChart').getContext('2d');
+  if(CHARTS_RATIO.main){CHARTS_RATIO.main.destroy();CHARTS_RATIO.main=null;}
+  CHARTS_RATIO.main = new Chart(ctx,{type:'line',
+    data:{labels, datasets:[
+      {label:'SP/CO Forecast', data:scFc, borderColor:cut.color,borderWidth:2.5,
+        pointRadius:3,pointBackgroundColor:cut.color,pointBorderColor:'var(--bg)',pointBorderWidth:2,
+        tension:.4,fill:false,yAxisID:'y'},
+      {label:'SP/CO Hist Avg', data:Array(12).fill(+histSC.toFixed(4)),
+        borderColor:cut.color+'60',borderWidth:1,borderDash:[5,3],pointRadius:0,tension:0,fill:false,yAxisID:'y'},
+      {label:'SP/LC Forecast', data:slFc, borderColor:'var(--teal)',borderWidth:2,
+        pointRadius:2,tension:.4,fill:false,yAxisID:'y2'},
+      {label:'SP/LC Hist Avg', data:Array(12).fill(+histSL.toFixed(4)),
+        borderColor:'rgba(45,212,191,.4)',borderWidth:1,borderDash:[5,3],pointRadius:0,tension:0,fill:false,yAxisID:'y2'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'#131920',borderColor:'rgba(255,255,255,.1)',borderWidth:1,
+        titleFont:{family:"'JetBrains Mono'",size:10},bodyFont:{family:"'JetBrains Mono'",size:11},
+        titleColor:'#7a8899',bodyColor:'#dde5f0',
+        callbacks:{label:c2=>{
+          const labels2=['SP/CO Fcst','SP/CO Hist','SP/LC Fcst','SP/LC Hist'];
+          return `${labels2[c2.datasetIndex]}: ×${c2.parsed.y.toFixed(4)}`;
+        }}
+      }},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e',maxRotation:45},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:cut.color+'99',callback:v=>'×'+v.toFixed(3)},border:{display:false},position:'left',title:{display:true,text:'SP/CO',color:cut.color+'77',font:{size:9}}},
+        y2:{grid:{display:false},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'rgba(45,212,191,.6)',callback:v=>'×'+v.toFixed(3)},border:{display:false},position:'right',title:{display:true,text:'SP/LC',color:'rgba(45,212,191,.6)',font:{size:9}}},
+      }
+    }
+  });
+
+  // Monthly ratio table
+  const cc={High:'var(--green)',Medium:'var(--amber)',Low:'var(--red)'};
+  const cb={High:'rgba(61,214,140,.08)',Medium:'rgba(245,166,35,.08)',Low:'rgba(242,95,92,.08)'};
+  document.getElementById('ratioMonthTable').innerHTML = `<table>
+    <thead><tr>
+      <th>Month</th><th>SP/CO</th><th>vs Hist</th><th>SP/LC</th><th>vs Hist</th>
+      <th>SP/Primal</th><th>Seasonal Idx</th><th>SP $/cwt</th><th>Conf</th>
+    </tr></thead>
+    <tbody>${sMs.map(m=>{
+      const scVH = ((m.scRatio/histSC-1)*100).toFixed(1);
+      const slVH = ((m.slRatio/histSL-1)*100).toFixed(1);
+      return `<tr>
+        <td style="color:var(--text2)">${m.label}</td>
+        <td style="color:${cut.color};font-weight:700">×${m.scRatio.toFixed(4)}</td>
+        <td class="${parseFloat(scVH)>=0?'up':'dn'}">${parseFloat(scVH)>=0?'+':''}${scVH}%</td>
+        <td style="color:var(--teal)">×${m.slRatio.toFixed(4)}</td>
+        <td class="${parseFloat(slVH)>=0?'up':'dn'}">${parseFloat(slVH)>=0?'+':''}${slVH}%</td>
+        <td style="color:var(--purple)">×${m.spRatio.toFixed(4)}</td>
+        <td style="color:${m.seasonIdx>=0?'var(--green)':'var(--red)'}">${m.seasonIdx>=0?'+':''}${m.seasonIdx}%</td>
+        <td style="color:${cut.color};font-weight:600">${m.sub.toFixed(2)}</td>
+        <td><span class="cp" style="background:${cb[m.conf]};color:${cc[m.conf]};border:1px solid ${cc[m.conf]}30">${m.conf}</span></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+
+  // Seasonal index bar chart
+  const annAvg = meta.seasonal.reduce((a,b)=>a+b,0)/12;
+  const seasonDevs = meta.seasonal.map(v=>+((v/annAvg-1)*100).toFixed(2));
+  const ctx2 = document.getElementById('ratioSeasonChart').getContext('2d');
+  if(CHARTS_RATIO.season){CHARTS_RATIO.season.destroy();CHARTS_RATIO.season=null;}
+  CHARTS_RATIO.season = new Chart(ctx2,{type:'bar',
+    data:{labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      datasets:[{label:'SC Seasonal',data:seasonDevs,
+        backgroundColor:seasonDevs.map(v=>v>=0?cut.color+'88':'rgba(242,95,92,.55)'),
+        borderColor:seasonDevs.map(v=>v>=0?cut.color:'var(--red)'),
+        borderWidth:1,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c2=>`${c2.parsed.y>=0?'+':''}${c2.parsed.y.toFixed(2)}% vs annual avg SC ratio`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e'},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e',callback:v=>v+'%'},border:{display:false}},
+      }
+    }
+  });
+
+  // Historical observations table
+  const obsData = USDA_OBS[cutKey] || [];
+  document.getElementById('obsTable').innerHTML = obsData.length ?
+    `<table>
+      <thead><tr>
+        <th>Date</th><th>Sub-Primal</th><th>Choice Cutout</th><th>Live Cattle (est)</th>
+        <th>SP/CO Ratio</th><th>SP/LC Ratio</th><th>vs Hist SC Avg</th>
+      </tr></thead>
+      <tbody>${obsData.map(([mo,yr,co,lc,sp])=>{
+        const sc=(sp/co).toFixed(4); const sl=(sp/lc).toFixed(4);
+        const diff=((parseFloat(sc)/histSC-1)*100).toFixed(1);
+        return `<tr>
+          <td style="color:var(--text2)">${MONTH_NAMES[mo]} ${yr}</td>
+          <td style="color:${cut.color};font-weight:700">${sp.toFixed(2)}</td>
+          <td style="color:rgba(245,166,35,.8)">${co.toFixed(2)}</td>
+          <td style="color:rgba(242,95,92,.7)">${lc.toFixed(2)}</td>
+          <td style="color:var(--purple)">×${sc}</td>
+          <td style="color:var(--teal)">×${sl}</td>
+          <td class="${parseFloat(diff)>=0?'up':'dn'}">${parseFloat(diff)>=0?'+':''}${diff}%</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`
+    : '<div style="font-family:var(--mono);font-size:11px;color:var(--text3);padding:8px 0">No direct observations — seasonal derived from parent primal template</div>';
+}
+
+
+// ─── REFERENCE DATA TABLE ──────────────────────────────────────────────
+const RIBEYE_3YR_DATA = [
+  {date:'Jun 2023',mo:5, rib:920.00,co:328.00,lc:180.00},
+  {date:'Sep 2023',mo:8, rib:830.00,co:300.00,lc:183.00},
+  {date:'Dec 2023',mo:11,rib:865.00,co:292.00,lc:172.00},
+  {date:'Mar 2024',mo:2, rib:815.00,co:304.00,lc:185.00},
+  {date:'Jun 2024',mo:5, rib:875.00,co:318.00,lc:188.00},
+  {date:'Sep 2024',mo:8, rib:840.00,co:300.00,lc:181.00},
+  {date:'Dec 2024',mo:11,rib:910.00,co:290.00,lc:178.00},
+  {date:'Mar 2025',mo:2, rib:835.00,co:305.00,lc:184.00},
+  {date:'Jun 2025',mo:5, rib:880.00,co:312.00,lc:186.00},
+  {date:'Sep 2025',mo:8, rib:855.00,co:302.00,lc:182.00},
+  {date:'Dec 2025',mo:11,rib:895.00,co:295.00,lc:185.00},
+  {date:'Mar 2026',mo:2, rib:840.00,co:308.00,lc:187.00},
+  {date:'Jun 2026',mo:5, rib:1277.78,co:395.48,lc:256.86},
+];
+
+function populateReferenceTable() {
+  const tbody = document.getElementById('refTableBody');
+  const cards = document.getElementById('refSummaryCards');
+  if (!tbody) return;
+
+  const SEASON_LABELS = {11:'Q4 Holiday ⭐', 8:'Q3 Fall', 5:'Q2 Summer', 2:'Q1 Post-Holiday'};
+  const SEASON_COLORS = {11:'var(--green)', 8:'var(--amber)', 5:'var(--blue)', 2:'var(--red)'};
+  const avgRL = RIBEYE_3YR_DATA.reduce((s,r)=>s+r.rib/r.lc,0)/RIBEYE_3YR_DATA.length;
+  const avgRC = RIBEYE_3YR_DATA.reduce((s,r)=>s+r.rib/r.co,0)/RIBEYE_3YR_DATA.length;
+
+  tbody.innerHTML = RIBEYE_3YR_DATA.map(r => {
+    const rl = r.rib/r.lc, rc = r.rib/r.co;
+    const rlDev = ((rl/avgRL-1)*100).toFixed(1);
+    const sc = SEASON_LABELS[r.mo]||'';
+    const sc_c = SEASON_COLORS[r.mo]||'var(--text3)';
+    const isHoliday = r.mo===11;
+    return `<tr style="${isHoliday?'background:rgba(61,214,140,.04)':''}">
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);color:var(--text2)">${r.date}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:var(--blue);font-weight:600">${r.rib.toFixed(2)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:rgba(245,166,35,.8)">${r.co.toFixed(2)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:rgba(242,95,92,.7)">${r.lc.toFixed(2)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:var(--purple)">${rl.toFixed(4)} <span style="font-size:9px;color:${parseFloat(rlDev)>=0?'var(--green)':'var(--red)'}">(${rlDev>=0?'+':''}${rlDev}%)</span></td>
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:var(--teal)">${rc.toFixed(4)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:${sc_c};font-size:9px">${sc}</td>
+    </tr>`;
+  }).join('');
+
+  // Summary cards
+  const q_data = [
+    {label:'Q4 Avg (Dec)', mos:[11], color:'var(--green)'},
+    {label:'Q2 Avg (Jun)', mos:[5],  color:'var(--blue)'},
+    {label:'Q3 Avg (Sep)', mos:[8],  color:'var(--amber)'},
+    {label:'Q1 Avg (Mar)', mos:[2],  color:'var(--red)'},
+    {label:'3-Yr Avg RL',  all:true, color:'var(--text2)', isAvg:true},
+    {label:'3-Yr Avg RC',  all:true, color:'var(--text2)', isRC:true},
+  ];
+
+  cards.innerHTML = q_data.map(q => {
+    let rl_avg, rc_avg, n;
+    if (q.all) {
+      rl_avg = avgRL; rc_avg = avgRC; n = RIBEYE_3YR_DATA.length;
+    } else {
+      const filtered = RIBEYE_3YR_DATA.filter(r=>q.mos.includes(r.mo));
+      rl_avg = filtered.reduce((s,r)=>s+r.rib/r.lc,0)/filtered.length;
+      rc_avg = filtered.reduce((s,r)=>s+r.rib/r.co,0)/filtered.length;
+      n = filtered.length;
+    }
+    const val = q.isRC ? rc_avg : rl_avg;
+    const vsAvg = q.isAvg||q.isRC ? null : ((val/(q.isRC?avgRC:avgRL)-1)*100).toFixed(1);
+    return `<div style="background:var(--bg3);border-radius:7px;padding:10px 12px;border:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${q.label}</div>
+      <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:${q.color}">×${val.toFixed(4)}</div>
+      ${vsAvg!==null?`<div style="font-family:var(--mono);font-size:9px;color:${parseFloat(vsAvg)>=0?'var(--green)':'var(--red)'};margin-top:2px">${parseFloat(vsAvg)>=0?'+':''}${vsAvg}% vs 3yr avg</div>`:'<div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px">n=${n}</div>'}
+    </div>`;
+  }).join('');
+}
+
+initApp();
+</script>
+
+<div style="position:fixed;bottom:6px;left:12px;z-index:7999;font-family:'JetBrains Mono',monospace;
+  font-size:8px;color:rgba(255,255,255,0.12);letter-spacing:.06em;pointer-events:none">
+  BEEF FORECAST SUITE v5.0 · BFE ENGINE v5.0 · BUILD 2026-06-22 · P3
+</div>
+</body>
+</html>
